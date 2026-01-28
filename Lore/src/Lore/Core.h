@@ -9,5 +9,5 @@
 #elif defined(LORE_PLATFORM_MAC)
 #define LORE_API
 #else
-#error Lore only supports Windows!
+#error Lore only supports Windows or Mac!
 #endif

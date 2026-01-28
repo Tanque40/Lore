@@ -1,3 +1,6 @@
 [submodule "Lore/vendor/spdlog"]
 	path = Lore/vendor/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "vendor/premake"]
+	path = vendor/premake
+	url = https://github.com/premake/premake-core.git

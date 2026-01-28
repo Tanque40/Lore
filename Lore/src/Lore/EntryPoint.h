@@ -1,8 +1,11 @@
 #pragma once
 
+#include "Lore/Application.h"
+#include "Lore/Log.h"
+
 extern Lore::Application* Lore::CreateApplication();
 
-void main(int argc, const char** argv) {
+int main(int argc, const char** argv) {
 
 	Lore::Log::Init();
 	LR_CORE_WARN("Initialize log...");
@@ -14,4 +17,5 @@ void main(int argc, const char** argv) {
 	app->Run();
 	delete app;
 
+	return 0;
 }

@@ -6,8 +6,8 @@
 #include "Lore/Core.h"
 #include "Lore/Log.h"
 
-// * Entry Point *
+// ? Entry Point ?
 
 #include "Lore/EntryPoint.h"
 
-// ***************
+// ? *********** ?
