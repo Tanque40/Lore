@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 workspace "Lore"
 
 configurations { "Debug", "Release", "Dist" }
