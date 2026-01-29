@@ -1,0 +1,45 @@
+@startuml Architecure
+
+node "LoreEngine" as LR{
+	[Application] as app
+	[Log] as log
+	[Core] as core
+	[Events] as events
+	[Input] as input
+	[Window] as window
+	[Shaders] as shaders
+	[OS Implementation] as osImplementation
+	node "LayerSystem" as layerSystem{
+		[Layer Stack] as layerStack
+		node "Layer" as layer{
+			[OnAttach] as onAttach
+			[OnDetach] as onDetach
+			[OnUpdate] as onUpdate
+			[OnImGuiLayer] as onImGuiLayer
+			[OnEvent] as onEvent
+		}
+	}
+}
+
+node "Sandbox" as SB{
+  [Sandbox App] as sandboxApp
+  [Sandbox Layer] as sandboxLayer
+
+  app <.. sandboxApp:extends
+  sandboxApp --> sandboxLayer : uses
+  layerSystem <.. sandboxLayer : implements
+}
+
+app --> core : uses
+app --> osImplementation : manages
+core --> shaders : uses
+core --> log : uses
+core --> events : uses
+core --> layerSystem : uses
+events --> input : uses
+events --> window : uses
+onEvent ..> events : implements
+
+LR <-- SB : depends on
+
+@enduml
