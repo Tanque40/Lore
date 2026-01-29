@@ -7,7 +7,7 @@
 
 namespace Lore {
 
-	class Log {
+	class LORE_API Log {
 	private:
 		static std::shared_ptr<spdlog::logger> s_CoreLogger;
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;

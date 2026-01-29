@@ -5,6 +5,8 @@ configurations { "Debug", "Release", "Dist" }
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+startproject ("Sandbox")
+
 project "Lore"
 	location "Lore"
 	kind "SharedLib"
@@ -31,15 +33,31 @@ project "Lore"
 			"LORE_PLATFORM_MAC"
 		}
 
+	filter "system:windows"
+		cppdialect "C++latest"
+		staticruntime "On"
+		architecture 'x64'
+
+		defines {
+			"LORE_PLATFORM_WINDOWS",
+			"LORE_BUILD_DLL"
+		}
+
+		buildoptions { "/utf-8" }
+
+		postbuildcommands {
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Sandbox")
+		}
+
 	filter "configurations:Debug"
 		defines "LR_DEBUG"
 		symbols "On"
 
-		filter "configurations:Release"
+	filter "configurations:Release"
 		defines "LR_RELEASE"
 		optimize "On"
 
-		filter "configurations:Dist"
+	filter "configurations:Dist"
 		defines "LR_DIST"
 		optimize "On"
 
@@ -74,14 +92,25 @@ project "Sandbox"
 			"LORE_PLATFORM_MAC"
 		}
 
+	filter "system:windows"
+		cppdialect "C++latest"
+		staticruntime "On"
+		architecture 'x64'
+
+		defines {
+			"LORE_PLATFORM_WINDOWS"
+		}
+
+		buildoptions { "/utf-8" }
+
 	filter "configurations:Debug"
 		defines "LR_DEBUG"
 		symbols "On"
 
-		filter "configurations:Release"
+	filter "configurations:Release"
 		defines "LR_RELEASE"
 		optimize "On"
 
-		filter "configurations:Dist"
+	filter "configurations:Dist"
 		defines "LR_DIST"
 		optimize "On"

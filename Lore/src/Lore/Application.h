@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Core.h"
+
 namespace Lore {
 
-	class Application {
+	class LORE_API Application {
 	public:
 		Application();
 		virtual ~Application();

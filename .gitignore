@@ -4,6 +4,10 @@ Makefile
 bin/
 bin-int/
 .vscode/
+*.vcxproj*
+*.sln
+*.slnx
+.vs/
 
 ################
 
