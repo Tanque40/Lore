@@ -5,6 +5,7 @@
 #include <iostream>
 #include "Lore/Core.h"
 #include "Lore/Log.h"
+#include "Lore/Application.h"
 
 // ? Entry Point ?
 
