@@ -11,3 +11,5 @@
 #else
 	#error Lore only supports Windows or Mac!
 #endif
+
+#define BIT(x) (1 << x)
