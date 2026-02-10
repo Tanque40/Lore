@@ -2,9 +2,6 @@
 
 #include "Lore/Core.h"
 
-#include <string>
-#include <functional>
-
 namespace Lore {
 	// By this moment event are blocking, meaning when an event is fired it
 	// immediately gets dispatched and must be dealt with right then and there.
@@ -21,11 +18,11 @@ namespace Lore {
 
 	enum EventCategory {
 		None = 0,
-		EventCategoryApplication	= BIT(0),
-		EventCategoryInput			= BIT(1),
-		EventCategoryKeyboard		= BIT(2),
-		EventCategoryMouse			= BIT(3),
-		EventCategoryMouseButton	= BIT(4),
+		EventCategoryApplication = BIT(0),
+		EventCategoryInput = BIT(1),
+		EventCategoryKeyboard = BIT(2),
+		EventCategoryMouse = BIT(3),
+		EventCategoryMouseButton = BIT(4),
 	};
 
 #define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\
@@ -34,7 +31,7 @@ namespace Lore {
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
-	class LORE_API Event{
+	class LORE_API Event {
 		friend class EventDispatcher;
 	protected:
 		bool m_Handled = false;
@@ -47,7 +44,7 @@ namespace Lore {
 		virtual int GetCategoryFlags() const = 0;
 		virtual std::string ToString() const { return GetName(); }
 
-		bool IsInCategory(EventCategory category){
+		bool IsInCategory(EventCategory category) const {
 			return GetCategoryFlags() & category;
 		}
 	};
@@ -57,7 +54,7 @@ namespace Lore {
 		Event& m_Event;
 
 	public:
-		EventDispatcher(Event& event) : m_Event(event){}
+		EventDispatcher(Event& event) : m_Event(event) {}
 
 		// F will be deduced by the compiler
 		template<typename T, typename F>
@@ -65,7 +62,7 @@ namespace Lore {
 		{
 			if (m_Event.GetEventType() == T::GetStaticType())
 			{
-				m_Event.Handled |= func(static_cast<T&>(m_Event));
+				m_Event.m_Handled |= func(static_cast<T&>(m_Event));
 				return true;
 			}
 			return false;
