@@ -36,10 +36,6 @@ project "Lore"
 		"%{IncludeDirs.GLFW}"
 	}
 
-	links {
-		"GLFW"
-	}
-
 	filter "system:macosx"
 		cppdialect "C++latest"
 		staticruntime "On"
@@ -52,9 +48,11 @@ project "Lore"
 		}
 
 		links {
+			"GLFW",
 			"Cocoa.framework",
 			"OpenGL.framework",
-			"IOKit.framework"
+			"IOKit.framework",
+			"QuartzCore.framework"
 		}
 
 	filter "system:windows"
@@ -63,6 +61,7 @@ project "Lore"
 		architecture 'x64'
 
 		links {
+			"GLFW",
 			"opengl32.lib",
 		}
 
@@ -81,7 +80,10 @@ project "Lore"
 		}
 
 	filter "configurations:Debug"
-		defines "LR_DEBUG"
+		defines{
+			"LR_DEBUG",
+			"LR_ENABLE_ASSERTS"
+		}
 		symbols "On"
 
 	filter "configurations:Release"
