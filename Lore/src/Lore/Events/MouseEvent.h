@@ -50,20 +50,20 @@ namespace Lore {
 
 	class LORE_API MouseButtonEvent : public Event {
 	public:
-		MouseCode GetMouseButton() const { return m_Button; }
+		inline int GetMouseButton() const { return m_Button; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput | EventCategoryMouseButton)
 	protected:
-		MouseButtonEvent(const MouseCode button)
+		MouseButtonEvent(const int button)
 			: m_Button(button) {
 		}
 
-		MouseCode m_Button;
+		int m_Button;
 	};
 
 	class LORE_API MouseButtonPressedEvent : public MouseButtonEvent {
 	public:
-		MouseButtonPressedEvent(const MouseCode button)
+		MouseButtonPressedEvent(const int button)
 			: MouseButtonEvent(button) {
 		}
 
@@ -78,7 +78,7 @@ namespace Lore {
 
 	class LORE_API MouseButtonReleasedEvent : public MouseButtonEvent {
 	public:
-		MouseButtonReleasedEvent(const MouseCode button)
+		MouseButtonReleasedEvent(const int button)
 			: MouseButtonEvent(button) {
 		}
 
