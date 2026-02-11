@@ -4,3 +4,6 @@
 [submodule "vendor/premake"]
 	path = vendor/premake
 	url = https://github.com/premake/premake-core.git
+[submodule "Lore/vendor/GLFW"]
+	path = Lore/vendor/GLFW
+	url = https://github.com/Tanque40/glfw.git

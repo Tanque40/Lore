@@ -7,6 +7,13 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 startproject ("Sandbox")
 
+IncludeDirs = {}
+IncludeDirs["spdlog"] = "Lore/vendor/spdlog/include"
+IncludeDirs["GLFW"] = "Lore/vendor/GLFW/include"
+
+include "Lore/vendor/GLFW"
+--- Start project isfor Visual Studio setup, it will open the Sandbox project by default when the solution is loaded
+
 project "Lore"
 	location "Lore"
 	kind "SharedLib"
@@ -24,8 +31,13 @@ project "Lore"
 	}
 
 	includedirs {
-		"%{prj.name}/vendor/spdlog/include",
-		"%{prj.name}/src"
+		"%{prj.name}/src",
+		"%{IncludeDirs.spdlog}",
+		"%{IncludeDirs.GLFW}"
+	}
+
+	links {
+		"GLFW"
 	}
 
 	filter "system:macosx"
@@ -34,7 +46,15 @@ project "Lore"
 		architecture 'ARM64'
 
 		defines {
-			"LORE_PLATFORM_MAC"
+			"LORE_PLATFORM_MAC",
+			"_CRT_SECURE_NO_WARNINGS",
+			"GLFW_INCLUDE_NONE"
+		}
+
+		links {
+			"Cocoa.framework",
+			"OpenGL.framework",
+			"IOKit.framework"
 		}
 
 	filter "system:windows"
@@ -42,9 +62,16 @@ project "Lore"
 		staticruntime "On"
 		architecture 'x64'
 
+		links {
+			"opengl32.lib",
+		}
+
 		defines {
 			"LORE_PLATFORM_WINDOWS",
-			"LORE_BUILD_DLL"
+			"LORE_BUILD_DLL",
+			"_CRT_SECURE_NO_WARNINGS",
+			"_GLFW_WIN32",
+			"GLFW_INCLUDE_NONE",
 		}
 
 		buildoptions { "/utf-8" }
@@ -79,7 +106,7 @@ project "Sandbox"
 	}
 
 	includedirs {
-		"Lore/vendor/spdlog/include",
+		"%{IncludeDirs.spdlog}",
 		"Lore/src"
 	}
 
