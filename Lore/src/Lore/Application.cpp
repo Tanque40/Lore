@@ -2,7 +2,7 @@
 
 #include "Application.h"
 
-#include "Log.h"
+#include <glad/glad.h>
 
 namespace Lore {
 
@@ -40,6 +40,10 @@ namespace Lore {
 
 	void Application::Run() {
 		while (m_Running) {
+
+			glClearColor(0, 1, 1, 1);
+			glClear(GL_COLOR_BUFFER_BIT);
+
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
 

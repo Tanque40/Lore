@@ -5,14 +5,16 @@ configurations { "Debug", "Release", "Dist" }
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+--- Start project isfor Visual Studio setup, it will open the Sandbox project by default when the solution is loaded
 startproject ("Sandbox")
 
 IncludeDirs = {}
 IncludeDirs["spdlog"] = "Lore/vendor/spdlog/include"
 IncludeDirs["GLFW"] = "Lore/vendor/GLFW/include"
+IncludeDirs["GLAD"] = "Lore/vendor/GLAD/include"
 
 include "Lore/vendor/GLFW"
---- Start project isfor Visual Studio setup, it will open the Sandbox project by default when the solution is loaded
+include "Lore/vendor/GLAD"
 
 project "Lore"
 	location "Lore"
@@ -33,7 +35,8 @@ project "Lore"
 	includedirs {
 		"%{prj.name}/src",
 		"%{IncludeDirs.spdlog}",
-		"%{IncludeDirs.GLFW}"
+		"%{IncludeDirs.GLFW}",
+		"%{IncludeDirs.GLAD}"
 	}
 
 	filter "system:macosx"
@@ -49,6 +52,7 @@ project "Lore"
 
 		links {
 			"GLFW",
+			"GLAD",
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
@@ -62,6 +66,7 @@ project "Lore"
 
 		links {
 			"GLFW",
+			"GLAD",
 			"opengl32.lib",
 		}
 
