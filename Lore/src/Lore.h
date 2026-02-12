@@ -6,6 +6,8 @@
 #include "Lore/Layer.h"
 #include "Lore/Log.h"
 
+#include "Lore/ImGui/ImGuiLayer.h"
+
 // ! Entry Point !
 #include "Lore/EntryPoint.h"
 // ! *********** !

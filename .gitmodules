@@ -7,3 +7,6 @@
 [submodule "Lore/vendor/GLFW"]
 	path = Lore/vendor/GLFW
 	url = https://github.com/Tanque40/glfw.git
+[submodule "Lore/vendor/IMGUI"]
+	path = Lore/vendor/IMGUI
+	url = https://github.com/Tanque40/imgui.git

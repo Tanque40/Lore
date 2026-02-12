@@ -12,9 +12,11 @@ IncludeDirs = {}
 IncludeDirs["spdlog"] = "Lore/vendor/spdlog/include"
 IncludeDirs["GLFW"] = "Lore/vendor/GLFW/include"
 IncludeDirs["GLAD"] = "Lore/vendor/GLAD/include"
+IncludeDirs["IMGUI"] = "Lore/vendor/IMGUI"
 
 include "Lore/vendor/GLFW"
 include "Lore/vendor/GLAD"
+include "Lore/vendor/IMGUI"
 
 project "Lore"
 	location "Lore"
@@ -36,7 +38,8 @@ project "Lore"
 		"%{prj.name}/src",
 		"%{IncludeDirs.spdlog}",
 		"%{IncludeDirs.GLFW}",
-		"%{IncludeDirs.GLAD}"
+		"%{IncludeDirs.GLAD}",
+		"%{IncludeDirs.IMGUI}"
 	}
 
 	filter "system:macosx"
@@ -53,6 +56,7 @@ project "Lore"
 		links {
 			"GLFW",
 			"GLAD",
+			"IMGUI",
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
@@ -67,6 +71,7 @@ project "Lore"
 		links {
 			"GLFW",
 			"GLAD",
+			"IMGUI",
 			"opengl32.lib",
 		}
 

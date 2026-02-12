@@ -8,6 +8,7 @@ bin-int/
 *.sln
 *.slnx
 .vs/
+imgui.ini
 
 ################
 

@@ -18,6 +18,7 @@ class Sandbox : public Lore::Application {
 public:
 	Sandbox() {
 		PushLayer(new ExampleLayer());
+		PushOverlay(new Lore::ImGuiLayer());
 	}
 	~Sandbox() {}
 
