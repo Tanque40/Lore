@@ -5,7 +5,6 @@ public:
 	ExampleLayer() : Layer("Example") {}
 
 	void OnUpdate() override {
-		LR_INFO("ExampleLayer::Update");
 	}
 
 	void OnEvent(Lore::Event& event) override {
