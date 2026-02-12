@@ -4,6 +4,7 @@
 #include "Lore/Events/Event.h"
 #include "Lore/Events/ApplicationEvent.h"
 #include "Lore/Window.h"
+#include "Lore/LayerStack.h"
 
 namespace Lore {
 
@@ -11,6 +12,7 @@ namespace Lore {
 	private:
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
+		LayerStack m_LayerStack;
 
 	public:
 		Application();
@@ -19,6 +21,9 @@ namespace Lore {
 		void Run();
 
 		void OnEvent(Event& e);
+
+		void PushLayer(Layer* layer);
+		void PushOverlay(Layer* overlay);
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);

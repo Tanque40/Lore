@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lrpch.h"
+
 #include "Lore/Core.h"
 
 namespace Lore {
@@ -33,10 +35,10 @@ namespace Lore {
 
 	class LORE_API Event {
 		friend class EventDispatcher;
-	protected:
-		bool m_Handled = false;
 
 	public:
+		bool m_Handled = false;
+
 		virtual ~Event() = default;
 
 		virtual EventType GetEventType() const = 0;

@@ -2,12 +2,10 @@
 
 // * Will be use by Lore applications *
 
-#include "Lore/Core.h"
-#include "Lore/Log.h"
 #include "Lore/Application.h"
+#include "Lore/Layer.h"
+#include "Lore/Log.h"
 
-// ? Entry Point ?
-
+// ! Entry Point !
 #include "Lore/EntryPoint.h"
-
-// ? *********** ?
+// ! *********** !
