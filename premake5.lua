@@ -13,6 +13,7 @@ IncludeDirs["spdlog"] = "Lore/vendor/spdlog/include"
 IncludeDirs["GLFW"] = "Lore/vendor/GLFW/include"
 IncludeDirs["GLAD"] = "Lore/vendor/GLAD/include"
 IncludeDirs["IMGUI"] = "Lore/vendor/IMGUI"
+IncludeDirs["glm"] = "Lore/vendor/glm"
 
 group "Dependencies"
 	include "Lore/vendor/GLFW"
@@ -33,7 +34,9 @@ project "Lore"
 
 	files{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.inl",
 	}
 
 	includedirs {
@@ -41,7 +44,8 @@ project "Lore"
 		"%{IncludeDirs.spdlog}",
 		"%{IncludeDirs.GLFW}",
 		"%{IncludeDirs.GLAD}",
-		"%{IncludeDirs.IMGUI}"
+		"%{IncludeDirs.IMGUI}",
+		"%{IncludeDirs.glm}"
 	}
 
 	filter "system:macosx"
@@ -132,7 +136,8 @@ project "Sandbox"
 
 	includedirs {
 		"%{IncludeDirs.spdlog}",
-		"Lore/src"
+		"Lore/src",
+		"%{IncludeDirs.glm}"
 	}
 
 	links{
