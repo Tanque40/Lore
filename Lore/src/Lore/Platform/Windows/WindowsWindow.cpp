@@ -1,12 +1,11 @@
 #include "lrpch.h"
 
-#ifdef LORE_PLATFORM_MAC
+#ifdef LORE_PLATFORM_WINDOWS
 
-#include "MacWindow.h"
+#include "WindowsWindow.h"
 
 #include "Lore/Core.h"
 
-#include "Lore/Events/Event.h"
 #include "Lore/Events/ApplicationEvent.h"
 #include "Lore/Events/MouseEvent.h"
 #include "Lore/Events/KeyEvent.h"
@@ -23,34 +22,31 @@ namespace Lore {
 	}
 
 	Window* Window::Create(const WindowProps& props) {
-		return new MacWindow(props);
+		return new WindowsWindow(props);
 	}
 
-	MacWindow::MacWindow(const WindowProps& props) {
+	WindowsWindow::WindowsWindow(const WindowProps& props) {
 		Init(props);
 	}
 
-	MacWindow::~MacWindow() {
+	WindowsWindow::~WindowsWindow() {
 		Shutdown();
 	}
 
-	void MacWindow::Init(const WindowProps& props) {
+	void WindowsWindow::Init(const WindowProps& props) {
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
 
-		LR_CORE_INFO("Creating mac window: {0} ({1}, {2})", props.Title, props.Width, props.Height);
+		LR_CORE_INFO("Creating windows window: {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
 		if (!s_GLFWInitialized) {
 			int success = glfwInit();
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-			//	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
 			const char* glsl_version = "#version 410";
-#ifdef __APPLE__
-			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
 
 			LR_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);
@@ -152,16 +148,16 @@ namespace Lore {
 		glfwGetFramebufferSize(m_Window, (int*)&m_Data.FramebufferWidth, (int*)&m_Data.FramebufferHeight);
 	}
 
-	void MacWindow::Shutdown() {
+	void WindowsWindow::Shutdown() {
 		glfwDestroyWindow(m_Window);
 	}
 
-	void MacWindow::OnUpdate() {
+	void WindowsWindow::OnUpdate() {
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
 	}
 
-	void MacWindow::SetVSync(bool enabled) {
+	void WindowsWindow::SetVSync(bool enabled) {
 		if (enabled)
 			glfwSwapInterval(1);
 		else
@@ -170,7 +166,7 @@ namespace Lore {
 		m_Data.VSync = enabled;
 	}
 
-	bool MacWindow::IsVSync() const {
+	bool WindowsWindow::IsVSync() const {
 		return m_Data.VSync;
 	}
 
