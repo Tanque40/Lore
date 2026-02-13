@@ -4,6 +4,8 @@
 
 #include <glad/glad.h>
 
+#include "Lore/Input.h"
+
 namespace Lore {
 
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
@@ -53,6 +55,9 @@ namespace Lore {
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
+
+			auto [mouseX, mouseY] = Input::GetMousePosition();
+			LR_CORE_TRACE("Mouse Position: ({0}, {1})", mouseX, mouseY);
 
 			m_Window->OnUpdate();
 		}
