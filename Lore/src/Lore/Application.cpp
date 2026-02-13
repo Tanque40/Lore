@@ -37,8 +37,6 @@ namespace Lore {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
 
-		LR_CORE_TRACE("{0}", e.ToString());
-
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();) {
 			(*--it)->OnEvent(e);
 			if (e.m_Handled) {
@@ -55,9 +53,6 @@ namespace Lore {
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
-
-			auto [mouseX, mouseY] = Input::GetMousePosition();
-			LR_CORE_TRACE("Mouse Position: ({0}, {1})", mouseX, mouseY);
 
 			m_Window->OnUpdate();
 		}
