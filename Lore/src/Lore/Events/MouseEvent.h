@@ -6,7 +6,7 @@
 namespace Lore {
 
 
-	class LORE_API MouseMovedEvent : public Event {
+	class  MouseMovedEvent : public Event {
 	public:
 		MouseMovedEvent(const float x, const float y)
 			: m_MouseX(x), m_MouseY(y) {
@@ -27,7 +27,7 @@ namespace Lore {
 		float m_MouseX, m_MouseY;
 	};
 
-	class LORE_API MouseScrolledEvent : public Event {
+	class  MouseScrolledEvent : public Event {
 	public:
 		MouseScrolledEvent(const float xOffset, const float yOffset)
 			: m_XOffset(xOffset), m_YOffset(yOffset) {
@@ -48,7 +48,7 @@ namespace Lore {
 		float m_XOffset, m_YOffset;
 	};
 
-	class LORE_API MouseButtonEvent : public Event {
+	class  MouseButtonEvent : public Event {
 	public:
 		inline int GetMouseButton() const { return m_Button; }
 
@@ -61,7 +61,7 @@ namespace Lore {
 		int m_Button;
 	};
 
-	class LORE_API MouseButtonPressedEvent : public MouseButtonEvent {
+	class  MouseButtonPressedEvent : public MouseButtonEvent {
 	public:
 		MouseButtonPressedEvent(const int button)
 			: MouseButtonEvent(button) {
@@ -76,7 +76,7 @@ namespace Lore {
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 	};
 
-	class LORE_API MouseButtonReleasedEvent : public MouseButtonEvent {
+	class  MouseButtonReleasedEvent : public MouseButtonEvent {
 	public:
 		MouseButtonReleasedEvent(const int button)
 			: MouseButtonEvent(button) {

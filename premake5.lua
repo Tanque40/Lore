@@ -23,7 +23,7 @@ group "Dependencies"
 group ""
 project "Lore"
 	location "Lore"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -71,7 +71,7 @@ project "Lore"
 
 	filter "system:windows"
 		cppdialect "C++latest"
-		staticruntime "off"
+		staticruntime "on"
 		architecture 'x64'
 
 		links {
@@ -91,34 +91,23 @@ project "Lore"
 
 		buildoptions { "/utf-8" }
 
-		postbuildcommands {
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Sandbox")
-		}
-
 	filter "configurations:Debug"
 		defines{
 			"LR_DEBUG",
 			"LR_ENABLE_ASSERTS"
 		}
-		symbols "On"
+		runtime "Debug"
+		symbols "on"
 
 	filter "configurations:Release"
 		defines "LR_RELEASE"
-		optimize "On"
+		runtime "Release"
+		optimize "on"
 
 	filter "configurations:Dist"
 		defines "LR_DIST"
-		optimize "On"
-
-	-- Filtros ESPECÍFICOS para Windows para agregar las banderas /MD
-	filter { "system:windows", "configurations:Debug" }
-		buildoptions "/MDd"
-
-	filter { "system:windows", "configurations:Release" }
-		buildoptions "/MD"
-
-	filter { "system:windows", "configurations:Dist" }
-		buildoptions "/MD"
+		runtime "Release"
+		optimize "on"
 
 
 project "Sandbox"
@@ -137,11 +126,12 @@ project "Sandbox"
 	includedirs {
 		"%{IncludeDirs.spdlog}",
 		"Lore/src",
-		"%{IncludeDirs.glm}"
+		"%{IncludeDirs.glm}",
+		"%{IncludeDirs.IMGUI}"
 	}
 
 	links{
-		"Lore"
+		"Lore",
 	}
 
 	filter "system:macosx"
@@ -155,7 +145,7 @@ project "Sandbox"
 
 	filter "system:windows"
 		cppdialect "C++latest"
-		staticruntime "off"
+		staticruntime "on"
 		architecture 'x64'
 
 		defines {
@@ -165,23 +155,19 @@ project "Sandbox"
 		buildoptions { "/utf-8" }
 
 	filter "configurations:Debug"
-		defines "LR_DEBUG"
-		symbols "On"
+		defines{
+			"LR_DEBUG",
+			"LR_ENABLE_ASSERTS"
+		}
+		runtime "Debug"
+		symbols "on"
 
 	filter "configurations:Release"
 		defines "LR_RELEASE"
-		optimize "On"
+		runtime "Release"
+		optimize "on"
 
 	filter "configurations:Dist"
 		defines "LR_DIST"
-		optimize "On"
-
-	-- Filtros ESPECÍFICOS para Windows para agregar las banderas /MD
-	filter { "system:windows", "configurations:Debug" }
-		buildoptions "/MDd"
-
-	filter { "system:windows", "configurations:Release" }
-		buildoptions "/MD"
-
-	filter { "system:windows", "configurations:Dist" }
-		buildoptions "/MD"
+		runtime "Release"
+		optimize "on"

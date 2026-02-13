@@ -6,11 +6,14 @@
 #include "Lore/Window.h"
 #include "Lore/LayerStack.h"
 
+#include "Lore/ImGui/ImGuiLayer.h"
+
 namespace Lore {
 
-	class LORE_API Application {
+	class  Application {
 	private:
 		std::unique_ptr<Window> m_Window;
+		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_LayerStack;
 

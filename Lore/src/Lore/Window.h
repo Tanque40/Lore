@@ -20,7 +20,7 @@ namespace Lore {
 	};
 
 	// * Interface representing a window
-	class LORE_API Window {
+	class  Window {
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;
 
