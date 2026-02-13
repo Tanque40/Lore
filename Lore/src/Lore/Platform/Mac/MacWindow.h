@@ -14,6 +14,7 @@ namespace Lore {
 		struct WindowData {
 			std::string Title;
 			unsigned int Width, Height;
+			unsigned int FramebufferWidth, FramebufferHeight;
 			bool VSync;
 
 			EventCallbackFn EventCallback;
@@ -29,6 +30,8 @@ namespace Lore {
 
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
 		inline unsigned int GetHeight() const override { return m_Data.Height; }
+		inline unsigned int GetFramebufferWidth() const override { return m_Data.FramebufferWidth; }
+		inline unsigned int GetFramebufferHeight() const override { return m_Data.FramebufferHeight; }
 
 		// Window attributes
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }

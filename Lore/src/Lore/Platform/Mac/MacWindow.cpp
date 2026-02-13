@@ -66,6 +66,7 @@ namespace Lore {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			data.Width = width;
 			data.Height = height;
+			glfwGetFramebufferSize(window, (int*)&data.FramebufferWidth, (int*)&data.FramebufferHeight);
 
 			WindowResizeEvent event(width, height);
 			data.EventCallback(event);
@@ -145,6 +146,8 @@ namespace Lore {
 			KeyTypedEvent event(keycode);
 			data.EventCallback(event);
 			});
+
+		glfwGetFramebufferSize(m_Window, (int*)&m_Data.FramebufferWidth, (int*)&m_Data.FramebufferHeight);
 	}
 
 	void MacWindow::Shutdown() {

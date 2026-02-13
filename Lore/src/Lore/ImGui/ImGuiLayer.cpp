@@ -5,6 +5,7 @@
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
+
 #include <backends/imgui_impl_opengl3.h>
 
 #include <GLFW/glfw3.h>
@@ -35,7 +36,14 @@ namespace Lore {
 	void ImGuiLayer::OnUpdate() {
 		ImGuiIO& io = ImGui::GetIO();
 		Application& app = Application::Get();
-		io.DisplaySize = ImVec2(app.GetWindow().GetWidth(), app.GetWindow().GetHeight());
+
+		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
+		io.DisplayFramebufferScale = ImVec2(
+			(float)app.GetWindow().GetFramebufferWidth() / (float)app.GetWindow().GetWidth(),
+			(float)app.GetWindow().GetFramebufferHeight() / (float)app.GetWindow().GetHeight()
+		);
+
+		//LR_CORE_INFO("Display size: {0}, {1}", io.DisplaySize.x, io.DisplaySize.y);
 
 		float time = (float)glfwGetTime();
 		io.DeltaTime = m_Time > 0.0f ? (time - m_Time) : (float)(1.0f / 60.0f);
@@ -67,12 +75,18 @@ namespace Lore {
 		ImGuiIO& io = ImGui::GetIO();
 		io.MouseDown[e.GetMouseButton()] = true;
 
+		//ImGuiKey imguiKey = ImGui::ImGui_ImplGlfw_KeyToImGuiKey(e.GetMouseButton(), 0);
+		//io.AddKeyEvent(imguiKey, true);
+
 		return false;
 	}
 
 	bool ImGuiLayer::OnMouseButtonReleasedEvent(MouseButtonReleasedEvent& e) {
 		ImGuiIO& io = ImGui::GetIO();
 		io.MouseDown[e.GetMouseButton()] = false;
+
+		//ImGuiKey imguiKey = ImGui::ImGui_ImplGlfw_KeyToImGuiKey(e.GetMouseButton(), 0);
+		//io.AddKeyEvent(imguiKey, false);
 
 		return false;
 	}
@@ -96,10 +110,6 @@ namespace Lore {
 		ImGuiIO& io = ImGui::GetIO();
 		io.KeysData[e.GetKeyCode()].Down = true;
 
-		io.KeyCtrl = io.KeysData[GLFW_KEY_LEFT_CONTROL].Down || io.KeysData[GLFW_KEY_RIGHT_CONTROL].Down;
-		io.KeyShift = io.KeysData[GLFW_KEY_LEFT_SHIFT].Down || io.KeysData[GLFW_KEY_RIGHT_SHIFT].Down;
-		io.KeyAlt = io.KeysData[GLFW_KEY_LEFT_ALT].Down || io.KeysData[GLFW_KEY_RIGHT_ALT].Down;
-		io.KeySuper = io.KeysData[GLFW_KEY_LEFT_SUPER].Down || io.KeysData[GLFW_KEY_RIGHT_SUPER].Down;
 		return false;
 	}
 
@@ -121,8 +131,12 @@ namespace Lore {
 
 	bool ImGuiLayer::OnWindowResizeEvent(WindowResizeEvent& e) {
 		ImGuiIO& io = ImGui::GetIO();
+		Application& app = Application::Get();
 		io.DisplaySize = ImVec2((float)e.GetWidth(), (float)e.GetHeight());
-		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+		io.DisplayFramebufferScale = ImVec2(
+			(float)app.GetWindow().GetFramebufferWidth() / (float)e.GetWidth(),
+			(float)app.GetWindow().GetFramebufferHeight() / (float)e.GetHeight()
+		);
 		glViewport(0, 0, e.GetWidth(), e.GetHeight());
 
 		return false;

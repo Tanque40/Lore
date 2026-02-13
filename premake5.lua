@@ -44,7 +44,7 @@ project "Lore"
 
 	filter "system:macosx"
 		cppdialect "C++latest"
-		staticruntime "On"
+		staticruntime "off"
 		architecture 'ARM64'
 
 		defines {
@@ -65,7 +65,7 @@ project "Lore"
 
 	filter "system:windows"
 		cppdialect "C++latest"
-		staticruntime "On"
+		staticruntime "off"
 		architecture 'x64'
 
 		links {
@@ -138,7 +138,7 @@ project "Sandbox"
 
 	filter "system:macosx"
 		cppdialect "C++latest"
-		staticruntime "On"
+		staticruntime "off"
 		architecture 'ARM64'
 
 		defines {
@@ -147,7 +147,7 @@ project "Sandbox"
 
 	filter "system:windows"
 		cppdialect "C++latest"
-		staticruntime "On"
+		staticruntime "off"
 		architecture 'x64'
 
 		defines {
