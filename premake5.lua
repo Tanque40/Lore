@@ -114,6 +114,7 @@ project "Lore"
 	filter { "system:windows", "configurations:Dist" }
 		buildoptions "/MD"
 
+
 project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
@@ -167,3 +168,13 @@ project "Sandbox"
 	filter "configurations:Dist"
 		defines "LR_DIST"
 		optimize "On"
+
+	-- Filtros ESPECÍFICOS para Windows para agregar las banderas /MD
+	filter { "system:windows", "configurations:Debug" }
+		buildoptions "/MDd"
+
+	filter { "system:windows", "configurations:Release" }
+		buildoptions "/MD"
+
+	filter { "system:windows", "configurations:Dist" }
+		buildoptions "/MD"

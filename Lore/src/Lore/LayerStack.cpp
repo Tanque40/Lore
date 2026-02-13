@@ -1,3 +1,5 @@
+#include "lrpch.h"
+
 #include "LayerStack.h"
 
 namespace Lore {
