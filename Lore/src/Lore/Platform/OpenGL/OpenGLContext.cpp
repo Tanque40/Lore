@@ -16,6 +16,15 @@ namespace Lore {
 		glfwMakeContextCurrent(m_WindowHandle);
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		LR_CORE_ASSERT(status, "Failed to initialize glad");
+
+		char* vendor = (char*)glGetString(GL_VENDOR);
+		char* renderer = (char*)glGetString(GL_RENDERER);
+		char* version = (char*)glGetString(GL_VERSION);
+
+		LR_CORE_INFO("OpenGL Info:");
+		LR_CORE_INFO("\tVendor: {0}", vendor);
+		LR_CORE_INFO("\tRenderer: {0}", renderer);
+		LR_CORE_INFO("\tVersion: {0}", version);
 	}
 
 	void OpenGLContext::SwapBuffers() {

@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <ostream>
+#include <iostream>
 
 #ifdef LORE_PLATFORM_WINDOWS
 #include <Windows.h>
