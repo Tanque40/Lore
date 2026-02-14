@@ -40,6 +40,8 @@ namespace Lore {
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
+		inline virtual void* GetNativeWindow() const override { return m_Window; }
+
 	private:
 		void Init(const WindowProps& props);
 		void Shutdown();

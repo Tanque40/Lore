@@ -50,7 +50,7 @@ project "Lore"
 
 	filter "system:macosx"
 		cppdialect "C++latest"
-		staticruntime "off"
+		staticruntime "on"
 		architecture 'ARM64'
 
 		defines {
@@ -136,11 +136,21 @@ project "Sandbox"
 
 	filter "system:macosx"
 		cppdialect "C++latest"
-		staticruntime "off"
+		staticruntime "on"
 		architecture 'ARM64'
 
 		defines {
 			"LORE_PLATFORM_MAC"
+		}
+
+		links {
+			"IMGUI",
+			"GLFW",
+			"GLAD",
+			"Cocoa.framework",
+			"OpenGL.framework",
+			"IOKit.framework",
+			"QuartzCore.framework"
 		}
 
 	filter "system:windows"
