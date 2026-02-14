@@ -10,3 +10,6 @@
 [submodule "Lore/vendor/IMGUI"]
 	path = Lore/vendor/IMGUI
 	url = https://github.com/Tanque40/imgui.git
+[submodule "Lore/vendor/glm"]
+	path = Lore/vendor/glm
+	url = https://github.com/g-truc/glm.git

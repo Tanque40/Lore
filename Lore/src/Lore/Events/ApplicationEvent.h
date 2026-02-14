@@ -4,7 +4,7 @@
 
 namespace Lore {
 
-	class LORE_API WindowResizeEvent : public Event {
+	class  WindowResizeEvent : public Event {
 	private:
 		unsigned int m_Width, m_Height;
 
@@ -26,7 +26,7 @@ namespace Lore {
 			EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class LORE_API WindowCloseEvent : public Event {
+	class  WindowCloseEvent : public Event {
 	public:
 		WindowCloseEvent() = default;
 
@@ -34,7 +34,7 @@ namespace Lore {
 			EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class LORE_API AppTickEvent : public Event {
+	class  AppTickEvent : public Event {
 	public:
 		AppTickEvent() = default;
 
@@ -42,7 +42,7 @@ namespace Lore {
 			EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class LORE_API AppUpdateEvent : public Event {
+	class  AppUpdateEvent : public Event {
 	public:
 		AppUpdateEvent() = default;
 
@@ -50,7 +50,7 @@ namespace Lore {
 			EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	class LORE_API AppRenderEvent : public Event {
+	class  AppRenderEvent : public Event {
 	public:
 		AppRenderEvent() = default;
 

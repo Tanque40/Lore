@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef LORE_PLATFORM_MAC
+#ifdef LORE_PLATFORM_WINDOWS
 
 #include "Lore/Window.h"
 
@@ -8,8 +8,7 @@
 
 namespace Lore {
 
-	class MacWindow : public Window {
-
+	class WindowsWindow : public Window{
 	private:
 		GLFWwindow* m_Window;
 
@@ -25,8 +24,8 @@ namespace Lore {
 		WindowData m_Data;
 
 	public:
-		MacWindow(const WindowProps& props);
-		virtual ~MacWindow();
+		WindowsWindow(const WindowProps& props);
+		virtual ~WindowsWindow();
 
 		void OnUpdate() override;
 
@@ -39,6 +38,8 @@ namespace Lore {
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
+
+		inline virtual void* GetNativeWindow() const override { return m_Window; }
 
 	private:
 		void Init(const WindowProps& props);

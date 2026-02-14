@@ -4,6 +4,12 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <utility>
+#include <algorithm>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <ostream>
 
 #ifdef LORE_PLATFORM_WINDOWS
 #include <Windows.h>
