@@ -3,6 +3,7 @@
 #ifdef LORE_PLATFORM_MAC
 
 #include "Lore/Window.h"
+#include "Lore/Renderer/GraphicsContext.h"
 
 #include <GLFW/glfw3.h>
 
@@ -23,6 +24,8 @@ namespace Lore {
 		};
 
 		WindowData m_Data;
+
+		GraphicsContext* m_Context;
 
 	public:
 		MacWindow(const WindowProps& props);

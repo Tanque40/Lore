@@ -11,8 +11,9 @@
 #include "Lore/Events/MouseEvent.h"
 #include "Lore/Events/KeyEvent.h"
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include "Lore/Platform/OpenGL/OpenGLContext.h"
 
 namespace Lore {
 
@@ -49,7 +50,7 @@ namespace Lore {
 
 			const char* glsl_version = "#version 410";
 #ifdef __APPLE__
-			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // Required on Mac
 #endif
 
 			LR_CORE_ASSERT(success, "Could not initialize GLFW!");
@@ -58,9 +59,11 @@ namespace Lore {
 		}
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
+
+		m_Context = new OpenGLContext(m_Window);
+		m_Context->Init();
+
 		glfwMakeContextCurrent(m_Window);
-		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-		LR_CORE_ASSERT(status, "Failed to initialize glad");
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
@@ -158,7 +161,7 @@ namespace Lore {
 
 	void MacWindow::OnUpdate() {
 		glfwPollEvents();
-		glfwSwapBuffers(m_Window);
+		m_Context->SwapBuffers();
 	}
 
 	void MacWindow::SetVSync(bool enabled) {
