@@ -2,7 +2,6 @@
 
 #include "lrpch.h"
 
-#include "Lore/Core.h"
 #include "Lore/Events/Event.h"
 
 namespace Lore {

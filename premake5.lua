@@ -159,7 +159,8 @@ project "Sandbox"
 		architecture 'x64'
 
 		defines {
-			"LORE_PLATFORM_WINDOWS"
+			"LORE_PLATFORM_WINDOWS",
+			"_CRT_SECURE_NO_WARNINGS",
 		}
 
 		buildoptions { "/utf-8" }
