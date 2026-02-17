@@ -47,9 +47,37 @@ namespace Lore {
 		};
 
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		std::string vertexSrc = R"(
+			#version 410 core
+
+			layout(location = 0) in vec3 a_Position;
+
+			out vec3 v_Color;
+
+			void main() {
+				gl_Position = vec4(a_Position + 0.5, 1.0);
+				v_Color = vec3(0.8, 0.2, 0.3);
+			}
+		)";
+
+		std::string fragmentSrc = R"(
+			#version 410 core
+
+			in vec3 v_Color;
+
+			out vec4 color;
+
+			void main() {
+				color = vec4(v_Color, 1.0);
+			}
+		)";
+
+		m_Shader = new Shader(vertexSrc, fragmentSrc);
 	}
 
 	Application::~Application() {
+		delete m_Shader;
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -80,6 +108,7 @@ namespace Lore {
 			glClearColor(0.1f, 0.1f, 0.1f, 1);
 			glClear(GL_COLOR_BUFFER_BIT);
 
+			m_Shader->Bind();
 			glBindVertexArray(m_VertexArray);
 			glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
 
