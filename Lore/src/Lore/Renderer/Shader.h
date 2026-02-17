@@ -1,16 +1,17 @@
 #pragma once
 
+#include <string>
+
 namespace Lore {
 
 	class Shader {
-	private:
-		unsigned int m_RendererID;
 	public:
-		Shader(const std::string& vertexPath, const std::string& fragmentPath);
-		~Shader();
+		virtual ~Shader() = default;
 
-		void Bind();
-		void Unbind();
+		virtual void Bind() const = 0;
+		virtual void Unbind() const = 0;
+
+		static Shader* Create(const std::string& vertexSrc, const std::string& fragmentSrc);
 	};
 
 }

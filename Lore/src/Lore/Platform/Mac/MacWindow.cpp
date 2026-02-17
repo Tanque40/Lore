@@ -13,7 +13,9 @@
 
 #include <GLFW/glfw3.h>
 
+#include "Lore/Renderer/RendererAPI.h"
 #include "Lore/Platform/OpenGL/OpenGLContext.h"
+#include "Lore/Platform/Metal/MetalContext.h"
 
 namespace Lore {
 
@@ -44,26 +46,31 @@ namespace Lore {
 
 		if (!s_GLFWInitialized) {
 			int success = glfwInit();
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-			//	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-
-			const char* glsl_version = "#version 410";
-#ifdef __APPLE__
-			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // Required on Mac
-#endif
-
 			LR_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);
 			s_GLFWInitialized = true;
 		}
 
+		if (RendererAPI::GetAPI() == RendererAPIType::OpenGL) {
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+#ifdef __APPLE__
+			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+#endif
+		}
+		else if (RendererAPI::GetAPI() == RendererAPIType::Metal) {
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		}
+
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 
-		m_Context = new OpenGLContext(m_Window);
+		if (RendererAPI::GetAPI() == RendererAPIType::OpenGL) {
+			m_Context = new OpenGLContext(m_Window);
+		}
+		else if (RendererAPI::GetAPI() == RendererAPIType::Metal) {
+			m_Context = new MetalContext(m_Window);
+		}
 		m_Context->Init();
-
-		glfwMakeContextCurrent(m_Window);
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
@@ -165,10 +172,13 @@ namespace Lore {
 	}
 
 	void MacWindow::SetVSync(bool enabled) {
-		if (enabled)
-			glfwSwapInterval(1);
-		else
-			glfwSwapInterval(0);
+		if (RendererAPI::GetAPI() == RendererAPIType::OpenGL) {
+			if (enabled)
+				glfwSwapInterval(1);
+			else
+				glfwSwapInterval(0);
+		}
+		// Metal VSync is controlled by CAMetalLayer.displaySyncEnabled (enabled by default)
 
 		m_Data.VSync = enabled;
 	}

@@ -2,9 +2,11 @@
 
 #include "Application.h"
 
-#include <glad/glad.h>
-
 #include "Lore/Input.h"
+
+#include "Lore/Renderer/Renderer.h"
+#include "Lore/Renderer/RenderCommand.h"
+#include "Lore/Renderer/RendererAPI.h"
 
 namespace Lore {
 
@@ -19,65 +21,95 @@ namespace Lore {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
+		Renderer::Init();
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 
-		glGenVertexArrays(1, &m_VertexArray);
-		glBindVertexArray(m_VertexArray);
+		// Create Vertex Array
+		m_VertexArray = VertexArray::Create();
 
-		glGenBuffers(1, &m_VertexBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, m_VertexBuffer);
-
-		float vertices[3 * 3]{
+		float vertices[4 * 3]{
 			-0.5f, -0.5f, 0.0f,
 			 0.5f, -0.5f, 0.0f,
-			 0.0f, 0.5f, 0.0f,
+			-0.5f, 0.5f, 0.0f,
+			 0.5f, 0.5f, 0.0f
 		};
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		VertexBuffer* vertexBuffer = VertexBuffer::Create(vertices, sizeof(vertices));
+		vertexBuffer->SetLayout({
+			{ ShaderDataType::Float3, "a_Position" }
+			});
+		m_VertexArray->AddVertexBuffer(vertexBuffer);
 
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		unsigned int indices[6] = { 0, 1, 2, 2, 1, 3 };
+		IndexBuffer* indexBuffer = IndexBuffer::Create(indices, 6);
+		m_VertexArray->SetIndexBuffer(indexBuffer);
 
-		glGenBuffers(1, &m_IndexBuffer);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer);
+		// Create shaders based on API
+		if (RendererAPI::GetAPI() == RendererAPIType::OpenGL) {
+			std::string vertexSrc = R"(
+				#version 410 core
 
-		unsigned int indices[3] = {
-			0, 1, 2
-		};
+				layout(location = 0) in vec3 a_Position;
 
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+				out vec3 v_Color;
 
-		std::string vertexSrc = R"(
-			#version 410 core
+				void main() {
+					gl_Position = vec4(a_Position, 1.0);
+					v_Color = vec3(0.8, 0.2, 0.3);
+				}
+			)";
 
-			layout(location = 0) in vec3 a_Position;
+			std::string fragmentSrc = R"(
+				#version 410 core
 
-			out vec3 v_Color;
+				in vec3 v_Color;
 
-			void main() {
-				gl_Position = vec4(a_Position + 0.5, 1.0);
-				v_Color = vec3(0.8, 0.2, 0.3);
-			}
-		)";
+				out vec4 color;
 
-		std::string fragmentSrc = R"(
-			#version 410 core
+				void main() {
+					color = vec4(v_Color, 1.0);
+				}
+			)";
 
-			in vec3 v_Color;
+			m_Shader = Shader::Create(vertexSrc, fragmentSrc);
+		}
+		else if (RendererAPI::GetAPI() == RendererAPIType::Metal) {
+			// Metal uses a single shader source with both vertex and fragment functions
+			std::string vertexSrc = R"(
+				#include <metal_stdlib>
+				using namespace metal;
 
-			out vec4 color;
+				struct VertexIn {
+					float3 position [[attribute(0)]];
+				};
 
-			void main() {
-				color = vec4(v_Color, 1.0);
-			}
-		)";
+				struct VertexOut {
+					float4 position [[position]];
+					float3 color;
+				};
 
-		m_Shader = new Shader(vertexSrc, fragmentSrc);
+				vertex VertexOut vertexShader(VertexIn in [[stage_in]]) {
+					VertexOut out;
+					out.position = float4(in.position, 1.0);
+					out.color = float3(0.8, 0.2, 0.3);
+					return out;
+				}
+
+				fragment float4 fragmentShader(VertexOut in [[stage_in]]) {
+					return float4(in.color, 1.0);
+				}
+			)";
+
+			// In Metal, both functions are in one source; pass empty string for fragment
+			m_Shader = Shader::Create(vertexSrc, "");
+		}
 	}
 
 	Application::~Application() {
 		delete m_Shader;
+		delete m_VertexArray;
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -105,12 +137,15 @@ namespace Lore {
 	void Application::Run() {
 		while (m_Running) {
 
-			glClearColor(0.1f, 0.1f, 0.1f, 1);
-			glClear(GL_COLOR_BUFFER_BIT);
+			RenderCommand::SetClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			RenderCommand::Clear();
 
-			m_Shader->Bind();
-			glBindVertexArray(m_VertexArray);
-			glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+			Renderer::BeginScene();
+
+			if (m_Shader && m_VertexArray)
+				Renderer::Submit(m_Shader, m_VertexArray);
+
+			Renderer::EndScene();
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();

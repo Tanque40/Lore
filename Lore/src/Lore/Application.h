@@ -9,6 +9,8 @@
 #include "Lore/ImGui/ImGuiLayer.h"
 
 #include "Lore/Renderer/Shader.h"
+#include "Lore/Renderer/Buffer.h"
+#include "Lore/Renderer/VertexArray.h"
 
 namespace Lore {
 
@@ -21,8 +23,8 @@ namespace Lore {
 
 		static Application* s_Instance;
 
-		unsigned int m_VertexArray, m_VertexBuffer, m_IndexBuffer;
-		Shader* m_Shader;
+		VertexArray* m_VertexArray = nullptr;
+		Shader* m_Shader = nullptr;
 	public:
 		Application();
 		virtual ~Application();

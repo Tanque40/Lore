@@ -35,9 +35,16 @@ project "Lore"
 	files{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.mm",
 		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
 	}
+
+	-- Compile .mm files as Objective-C++ without PCH
+	filter "files:**.mm"
+		compileas "Objective-C++"
+		enablepch "Off"
+	filter {}
 
 	includedirs {
 		"%{prj.name}/src",
@@ -66,8 +73,13 @@ project "Lore"
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
-			"QuartzCore.framework"
+			"QuartzCore.framework",
+			"Metal.framework",
+			"MetalKit.framework",
+			"Foundation.framework"
 		}
+
+		buildoptions { "-fobjc-arc" }
 
 	filter "system:windows"
 		cppdialect "C++latest"
@@ -150,7 +162,10 @@ project "Sandbox"
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
-			"QuartzCore.framework"
+			"QuartzCore.framework",
+			"Metal.framework",
+			"MetalKit.framework",
+			"Foundation.framework"
 		}
 
 	filter "system:windows"
