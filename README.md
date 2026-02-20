@@ -322,7 +322,7 @@ sequenceDiagram
 
 ## Estructura del Proyecto
 
-```
+```text
 Lore/                          # Raíz del workspace
 ├── premake5.lua               # Build system principal (Premake5)
 ├── Lore.slnx                  # Solución Visual Studio
@@ -397,7 +397,7 @@ Lore/                          # Raíz del workspace
 
 ## Jerarquía de Clases
 
-```
+```text
 GraphicsContext (interfaz)
 └── OpenGLContext
 
