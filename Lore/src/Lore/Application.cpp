@@ -32,7 +32,11 @@ namespace Lore {
 		};
 
 		m_VertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
-		m_VertexBuffer->Bind();
+
+		BufferLayout layout = {
+			{ ShaderDataType::Float3, "a_Position" }
+		};
+		m_VertexBuffer->SetLayout(layout);
 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -42,7 +46,6 @@ namespace Lore {
 		};
 
 		m_IndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
-		m_IndexBuffer->Bind();
 
 		std::string vertexSrc = R"(
 			#version 410 core
