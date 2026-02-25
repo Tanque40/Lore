@@ -124,6 +124,7 @@ project "Sandbox"
 	}
 
 	includedirs {
+		"Sandbox/src",
 		"%{IncludeDirs.spdlog}",
 		"Lore/src",
 		"%{IncludeDirs.glm}",

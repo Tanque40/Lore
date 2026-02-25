@@ -1,10 +1,24 @@
 #include <Lore.h>
 
 #include <imgui.h>
+#include <string>
+
+#include "Maze/Algorithms/BinaryTree.h"
 
 class ExampleLayer : public Lore::Layer {
+private:
+	Maze::Grid m_Grid{ 10, 10 };
+	std::string m_GridString = "";
+
 public:
 	ExampleLayer() : Layer("Example") {
+
+	}
+
+	void OnAttach() override {
+		m_Grid = Maze::BinaryTree::On(m_Grid);
+		m_GridString = m_Grid.ToString();
+		//LR_TRACE("\n{}", m_GridString);
 	}
 
 	void OnUpdate() override {
@@ -15,7 +29,7 @@ public:
 
 	void OnImGuiRender() override {
 		ImGui::Begin("SandBox Test");
-		ImGui::Text("Hello, World!");
+		ImGui::Text("%s", m_GridString.c_str());
 		ImGui::End();
 	}
 
