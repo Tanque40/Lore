@@ -9,7 +9,7 @@
 #error Lore only supports Windows or Mac!
 #endif
 
-#ifdef LORE_ENABLE_ASSERTS
+#ifdef LR_ENABLE_ASSERTS
 #ifdef LORE_PLATFORM_WINDOWS
 #define LR_ASSERT(x, ...) { if(!(x)) { LR_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
 #define LR_CORE_ASSERT(x, ...) { if(!(x)) { LR_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
