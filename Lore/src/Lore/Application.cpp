@@ -33,12 +33,12 @@ namespace Lore {
 		m_VertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
 
 		BufferLayout layout = {
-		 	{ ShaderDataType::Float3, "a_Position" },
+			{ ShaderDataType::Float3, "a_Position" },
 			{ ShaderDataType::Float4, "a_Color" },
-			};
+		};
 
-		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexBuffer->SetLayout(layout);
+		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 
 		unsigned int indices[3] = {
 			0, 1, 2
