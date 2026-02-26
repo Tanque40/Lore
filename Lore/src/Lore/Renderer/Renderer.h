@@ -1,18 +1,18 @@
 #pragma once
 
+#include "Lore/Renderer/RendererAPI.h"
+#include "Lore/Renderer/RenderCommand.h"
+#include "Lore/Renderer/VertexArray.h"
+
 namespace Lore {
 
-	enum class RendererAPI {
-		None = 0,
-		OpenGL = 1
-	};
-
 	class Renderer {
-	private:
-		static RendererAPI s_RedererAPI;
-
 	public:
-		inline static RendererAPI GetAPI() { return s_RedererAPI; }
+		static void BeginScene();
+		static void Submit(const std::shared_ptr<VertexArray>& vertexArray);
+		static void EndScene();
+
+		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 	};
 
 }

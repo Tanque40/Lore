@@ -10,12 +10,12 @@ namespace Lore {
 
 	VertexArray* VertexArray::Create() {
 		switch (Renderer::GetAPI()) {
-			case RendererAPI::None:
-				LR_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
-				return nullptr;
-			case RendererAPI::OpenGL:
-				return new OpenGLVertexArray();
-				break;
+		case RendererAPI::API::None:
+			LR_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
+			return nullptr;
+		case RendererAPI::API::OpenGL:
+			return new OpenGLVertexArray();
+			break;
 		}
 
 		LR_CORE_ASSERT(false, "Unknown RendererAPI!");
