@@ -32,6 +32,8 @@ namespace Lore {
 		virtual unsigned int GetFramebufferWidth() const = 0;
 		virtual unsigned int GetFramebufferHeight() const = 0;
 
+		virtual double GetTime() const = 0;
+
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void SetVSync(bool enabled) = 0;

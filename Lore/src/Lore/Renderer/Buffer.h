@@ -55,6 +55,8 @@ namespace Lore {
 			case ShaderDataType::Bool:    return 1;
 			case ShaderDataType::None:     return 0;
 			}
+
+			return 0;
 		}
 	};
 

@@ -1,17 +1,13 @@
 #pragma once
 
-#include "Lore/Core.h"
 #include "Lore/Events/Event.h"
 #include "Lore/Events/ApplicationEvent.h"
 #include "Lore/Window.h"
 #include "Lore/LayerStack.h"
 
-#include "Lore/ImGui/ImGuiLayer.h"
+#include "Lore/Core/TimeStep.h"
 
-#include "Lore/Renderer/Shader.h"
-#include "Lore/Renderer/Buffer.h"
-#include "Lore/Renderer/VertexArray.h"
-#include "Lore/Renderer/OrthographicCamera.h"
+#include "Lore/ImGui/ImGuiLayer.h"
 
 namespace Lore {
 
@@ -21,6 +17,9 @@ namespace Lore {
 		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_LayerStack;
+
+		TimeStep m_TimeStep;
+		float m_LastFrameTime = 0.0f;
 
 		static Application* s_Instance;
 	public:

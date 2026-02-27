@@ -21,6 +21,8 @@ namespace Lore {
 			case ShaderDataType::Bool:    return GL_BOOL;
 			case ShaderDataType::None:    return 0;
 		}
+
+		return 0;
 	}
 
 	OpenGLVertexArray::OpenGLVertexArray() {

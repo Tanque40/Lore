@@ -37,6 +37,8 @@ namespace Lore {
 		inline unsigned int GetFramebufferWidth() const override { return m_Data.FramebufferWidth; }
 		inline unsigned int GetFramebufferHeight() const override { return m_Data.FramebufferHeight; }
 
+		inline virtual double GetTime() const override { return glfwGetTime(); };
+
 		// Window attributes
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;

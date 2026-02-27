@@ -6,6 +6,8 @@
 #include "Lore/Layer.h"
 #include "Lore/Log.h"
 
+#include "Lore/Core/TimeStep.h"
+
 #include "Lore/MouseButtonCodes.h"
 #include "Lore/KeyCodes.h"
 #include "Lore/Input.h"

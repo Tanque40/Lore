@@ -2,9 +2,6 @@
 
 #include "Application.h"
 
-#include "Lore/Renderer/Renderer.h"
-#include "Lore/Input.h"
-
 namespace Lore {
 
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
@@ -48,9 +45,14 @@ namespace Lore {
 	}
 
 	void Application::Run() {
+
 		while (m_Running) {
+			float time = (float) m_Window->GetTime();
+			m_TimeStep = time - m_LastFrameTime;
+			m_LastFrameTime = time;
+
 			for (Layer* layer : m_LayerStack)
-				layer->OnUpdate();
+				layer->OnUpdate(m_TimeStep);
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
@@ -59,6 +61,7 @@ namespace Lore {
 
 			m_Window->OnUpdate();
 		}
+
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
