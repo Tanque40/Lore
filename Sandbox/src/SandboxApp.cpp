@@ -7,7 +7,7 @@
 
 class ExampleLayer : public Lore::Layer {
 private:
-	Maze::Grid m_Grid{ 10, 10 };
+	Maze::Grid m_Grid{ 50, 50 };
 	std::string m_GridString = "";
 
 	std::shared_ptr<Lore::Shader> m_Shader;

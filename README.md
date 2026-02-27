@@ -2,13 +2,16 @@
 
 **Lore Engine** es un motor de juegos cross-platform enfocado en manipulación voxel, construido con C++ moderno y OpenGL 4.1.
 
-El proyecto está en una **fase de fundación temprana**: el sistema de ventanas, eventos, input, capas e ImGui están funcionales. El sistema de renderizado es el siguiente módulo principal a construir.
+El proyecto cuenta con una **base sólida de renderizado**: sistema de ventanas, eventos, input, capas, ImGui, y un renderer abstraído con cámara ortográfica están completamente funcionales.
 
 ---
 
 ## Características Implementadas
 
 - **Soporte Cross-Platform**: Windows (x64) y macOS (ARM64)
+- **Renderer Abstraction**: Sistema completo con Shader, VertexBuffer, IndexBuffer, VertexArray, RenderCommand y Renderer
+- **Cámara Ortográfica**: OrthographicCamera con posición, rotación y matrices View/Projection
+- **Matemáticas con glm**: Vectores, matrices y transformaciones integradas
 - **Arquitectura por Capas**: Sistema modular de `Layer`/`LayerStack` para organizar lógica de juego y renderizado
 - **Sistema de Eventos**: Despacho inmediato con tipado seguro y categorías (Application, Input, Keyboard, Mouse)
 - **Integración ImGui**: Overlay de Dear ImGui con soporte de docking y viewports múltiples
@@ -28,6 +31,15 @@ graph TB
         SandboxApp["Sandbox : Application"]
         ExampleLayer["ExampleLayer : Layer"]
         SandboxApp -->|PushLayer| ExampleLayer
+
+        subgraph MazeModule["Maze Module"]
+            MazeGrid["Grid<br/><i>matriz de celdas</i>"]
+            MazeCell["Cell<br/><i>conexiones N/S/E/W</i>"]
+            BinaryTree["BinaryTree<br/><i>algoritmo generador</i>"]
+            MazeGrid -->|contiene| MazeCell
+            BinaryTree -->|genera| MazeGrid
+        end
+        ExampleLayer --> MazeModule
     end
 
     subgraph LoreEngine["Lore Engine (StaticLib)"]
@@ -81,6 +93,12 @@ graph TB
         subgraph Renderer["Renderer"]
             Window["Window<br/><i>interfaz pura</i>"]
             GraphicsContext["GraphicsContext<br/><i>interfaz pura</i>"]
+            RendererClass["Renderer<br/><i>BeginScene/Submit/EndScene</i>"]
+            RenderCommand["RenderCommand<br/><i>comandos estáticos</i>"]
+            ShaderClass["Shader<br/><i>uniforms, bind</i>"]
+            BufferClasses["VertexBuffer / IndexBuffer"]
+            VertexArrayClass["VertexArray"]
+            CameraClass["OrthographicCamera<br/><i>View/Projection matrices</i>"]
         end
     end
 
@@ -103,7 +121,7 @@ graph TB
         GLAD["GLAD<br/><i>OpenGL loader</i>"]
         IMGUI["Dear ImGui<br/><i>GUI inmediata</i>"]
         spdlog["spdlog<br/><i>logging</i>"]
-        glm["glm<br/><i>math (sin usar aún)</i>"]
+        glm["glm<br/><i>matrices, vectores</i>"]
     end
 
     WindowsWindow --> GLFW
@@ -123,15 +141,47 @@ classDiagram
         -bool m_Running
         -LayerStack m_LayerStack
         -static Application* s_Instance
-        -unsigned int m_VertexArray
-        -unsigned int m_VertexBuffer
-        -unsigned int m_IndexBuffer
         +Run() void
         +OnEvent(Event&) void
         +PushLayer(Layer*) void
         +PushOverlay(Layer*) void
         +static Get() Application&
         +GetWindow() Window&
+    }
+
+    class Renderer {
+        -static SceneData* s_SceneData
+        +static BeginScene(OrthographicCamera&) void
+        +static Submit(VertexArray, Shader) void
+        +static EndScene() void
+        +static GetAPI() API
+    }
+
+    class OrthographicCamera {
+        -mat4 m_ProjectionMatrix
+        -mat4 m_ViewMatrix
+        -mat4 m_ViewProjectionMatrix
+        -vec3 m_Position
+        -float m_Rotation
+        +SetPosition(vec3) void
+        +SetRotation(float) void
+        +GetViewProjectionMatrix() mat4
+    }
+
+    class Shader {
+        -unsigned int m_RendererID
+        +Bind() void
+        +Unbind() void
+        +SetUniformMat4f(name, mat4) void
+    }
+
+    class VertexArray {
+        <<interface>>
+        +Bind()* void
+        +Unbind()* void
+        +AddVertexBuffer(VertexBuffer*)* void
+        +SetIndexBuffer(IndexBuffer*)* void
+        +static Create() VertexArray*
     }
 
     class Window {
@@ -258,6 +308,56 @@ classDiagram
     MouseButtonEvent <|-- MouseButtonReleasedEvent
 ```
 
+### Diagrama de Clases - Módulo Maze
+
+```mermaid
+classDiagram
+    class Cell {
+        -unsigned int m_Row
+        -unsigned int m_Column
+        -Cell* m_North
+        -Cell* m_South
+        -Cell* m_East
+        -Cell* m_West
+        -map~Cell*, bool~ m_Links
+        +SetNorth(Cell*) void
+        +SetSouth(Cell*) void
+        +SetEast(Cell*) void
+        +SetWest(Cell*) void
+        +GetNorth() Cell*
+        +GetSouth() Cell*
+        +GetEast() Cell*
+        +GetWest() Cell*
+        +Link(Cell*, bool) void
+        +Unlink(Cell*, bool) void
+        +GetLinks() vector~Cell*~
+        +IsLinked(Cell*) bool
+        +GetNeighbors() vector~Cell*~
+    }
+
+    class Grid {
+        -unsigned int m_Rows
+        -unsigned int m_Columns
+        -vector~vector~Cell*~~ m_Grid
+        +PrepareGrid() void
+        +ConfigureCells() void
+        +RandomCell() Cell*
+        +EachRow(callback) void
+        +EachCell(callback) void
+        +Size() unsigned int
+        +operator()(row, col) Cell*
+        +ToString() string
+    }
+
+    class BinaryTree {
+        +static On(Grid) Grid
+    }
+
+    Grid *-- Cell : contiene
+    BinaryTree ..> Grid : genera
+    BinaryTree ..> Cell : enlaza
+```
+
 ### Flujo del Game Loop
 
 ```mermaid
@@ -266,6 +366,9 @@ sequenceDiagram
     participant App as Application
     participant Win as Window (GLFW)
     participant LS as LayerStack
+    participant L as Layer (ExampleLayer)
+    participant R as Renderer
+    participant RC as RenderCommand
     participant IG as ImGuiLayer
     participant GL as OpenGLContext
 
@@ -273,11 +376,13 @@ sequenceDiagram
     EP->>App: Run()
 
     loop Game Loop (while m_Running)
-        App->>Win: glClear (pantalla)
-        App->>App: glDrawElements (triángulo test)
-
         loop Para cada Layer
             App->>LS: layer->OnUpdate()
+            L->>RC: SetClearColor(), Clear()
+            L->>R: BeginScene(camera)
+            L->>R: Submit(vertexArray, shader)
+            R->>RC: DrawIndexed()
+            L->>R: EndScene()
         end
 
         App->>IG: Begin()
@@ -366,8 +471,15 @@ Lore/                          # Raíz del workspace
 │   │       │   └── OpenGL/
 │   │       │       └── OpenGLContext.h/.cpp   # Init GLAD + swap buffers
 │   │       │
-│   │       └── Renderer/            # (En desarrollo)
-│   │           └── GraphicsContext.h  # Interfaz pura (Init + SwapBuffers)
+│   │       └── Renderer/            # Sistema de renderizado
+│   │           ├── GraphicsContext.h    # Interfaz pura (Init + SwapBuffers)
+│   │           ├── Renderer.h/.cpp      # BeginScene, Submit, EndScene
+│   │           ├── RenderCommand.h      # Comandos estáticos de renderizado
+│   │           ├── RendererAPI.h/.cpp   # Abstracción de API gráfica
+│   │           ├── Shader.h/.cpp        # Compilación GLSL + uniforms
+│   │           ├── Buffer.h/.cpp        # VertexBuffer, IndexBuffer, BufferLayout
+│   │           ├── VertexArray.h/.cpp   # Vertex Array Objects
+│   │           └── OrthographicCamera.h/.cpp  # Cámara 2D con transformaciones
 │   │
 │   └── vendor/                # Dependencias del motor
 │       ├── GLFW/              # Windowing y input nativo
@@ -378,7 +490,13 @@ Lore/                          # Raíz del workspace
 │
 ├── Sandbox/                   # Aplicación de ejemplo (ConsoleApp)
 │   └── src/
-│       └── SandboxApp.cpp     # ExampleLayer + CreateApplication()
+│       ├── SandboxApp.cpp     # ExampleLayer + CreateApplication()
+│       └── Maze/              # Sistema de generación de laberintos
+│           ├── Base/
+│           │   ├── Cell.h/.cpp   # Celda con enlaces N/S/E/W
+│           │   └── Grid.h/.cpp   # Matriz 2D + iteradores + ToString()
+│           └── Algorithms/
+│               └── BinaryTree.h/.cpp  # Generador procedural
 │
 ├── Scripts/                   # Scripts de build
 │   └── Macos/
@@ -400,6 +518,24 @@ Lore/                          # Raíz del workspace
 ```text
 GraphicsContext (interfaz)
 └── OpenGLContext
+
+RendererAPI (interfaz)
+└── OpenGLRendererAPI
+
+Shader
+└── (Implementación OpenGL directa)
+
+VertexBuffer (interfaz + factory)
+└── OpenGLVertexBuffer
+
+IndexBuffer (interfaz + factory)
+└── OpenGLIndexBuffer
+
+VertexArray (interfaz + factory)
+└── OpenGLVertexArray
+
+OrthographicCamera
+└── (Clase concreta con glm)
 
 Window (interfaz + factory)
 ├── WindowsWindow
@@ -429,20 +565,26 @@ Layer (base, todos los métodos virtuales son no-op)
 Application (singleton, el cliente hereda de esta)
 └── Sandbox (código cliente)
     └── ExampleLayer
+
+Maze (módulo independiente en Sandbox)
+├── Grid (matriz 2D de celdas)
+│   └── Cell (celda con enlaces N/S/E/W)
+└── Algorithms
+    └── BinaryTree (generador de laberintos)
 ```
 
 ---
 
 ## Dependencias
 
-| Librería                                       | Versión / Rama | Propósito                                                        |
-| ---------------------------------------------- | -------------- | ---------------------------------------------------------------- |
-| [GLFW](https://www.glfw.org/)                  | —              | Creación de ventanas, contexto OpenGL, input nativo              |
-| [GLAD](https://glad.dav1d.de/)                 | OpenGL 4.1     | Loader de funciones OpenGL                                       |
-| [Dear ImGui](https://github.com/ocornut/imgui) | Rama docking   | GUI inmediata con docking y multi-viewports                      |
-| [spdlog](https://github.com/gabime/spdlog)     | Header-only    | Logging rápido con formato y colores                             |
-| [glm](https://github.com/g-truc/glm)           | —              | Matemáticas (vectores, matrices). **Incluido pero sin usar aún** |
-| [Premake5](https://premake.github.io/)         | —              | Generación de proyectos (VS, Makefiles)                          |
+| Librería                                       | Versión / Rama | Propósito                                                       |
+| ---------------------------------------------- | -------------- | --------------------------------------------------------------- |
+| [GLFW](https://www.glfw.org/)                  | —              | Creación de ventanas, contexto OpenGL, input nativo             |
+| [GLAD](https://glad.dav1d.de/)                 | OpenGL 4.1     | Loader de funciones OpenGL                                      |
+| [Dear ImGui](https://github.com/ocornut/imgui) | Rama docking   | GUI inmediata con docking y multi-viewports                     |
+| [spdlog](https://github.com/gabime/spdlog)     | Header-only    | Logging rápido con formato y colores                            |
+| [glm](https://github.com/g-truc/glm)           | —              | Matemáticas (vectores, matrices) para cámara y transformaciones |
+| [Premake5](https://premake.github.io/)         | —              | Generación de proyectos (VS, Makefiles)                         |
 
 ---
 
@@ -450,34 +592,34 @@ Application (singleton, el cliente hereda de esta)
 
 ### Implementado
 
-| Módulo              | Estado    | Descripción                                                                |
-| ------------------- | --------- | -------------------------------------------------------------------------- |
-| Windowing (GLFW)    | Completo  | Creación de ventana, VSync, callbacks. Windows + Mac                       |
-| Sistema de Eventos  | Completo  | Despacho inmediato por tipo con `EventDispatcher`. 14 tipos de evento      |
-| Input Polling       | Completo  | Teclado + ratón, ambas plataformas                                         |
-| Logging (spdlog)    | Completo  | Logger dual Core (`LORE`) / Client (`APP`) con macros                      |
-| Sistema de Capas    | Completo  | `LayerStack` con capas normales y overlays. Propagación inversa de eventos |
-| Integración ImGui   | Completo  | Docking, viewports múltiples, demo window, backends GLFW + OpenGL3         |
-| Contexto OpenGL     | Completo  | OpenGL 4.1, GLAD loader, info de GPU al inicio                             |
-| Triángulo de prueba | Funcional | VAO/VBO/EBO con llamadas OpenGL directas en `Application.cpp`              |
+| Módulo                   | Estado    | Descripción                                                                |
+| ------------------------ | --------- | -------------------------------------------------------------------------- |
+| Windowing (GLFW)         | Completo  | Creación de ventana, VSync, callbacks. Windows + Mac                       |
+| Sistema de Eventos       | Completo  | Despacho inmediato por tipo con `EventDispatcher`. 14 tipos de evento      |
+| Input Polling            | Completo  | Teclado + ratón, ambas plataformas                                         |
+| Logging (spdlog)         | Completo  | Logger dual Core (`LORE`) / Client (`APP`) con macros                      |
+| Sistema de Capas         | Completo  | `LayerStack` con capas normales y overlays. Propagación inversa de eventos |
+| Integración ImGui        | Completo  | Docking, viewports múltiples, demo window, backends GLFW + OpenGL3         |
+| Contexto OpenGL          | Completo  | OpenGL 4.1, GLAD loader, info de GPU al inicio                             |
+| **Renderer Abstraction** | Completo  | Renderer, RenderCommand, RendererAPI, Shader, Buffer, VertexArray          |
+| **Cámara Ortográfica**   | Completo  | OrthographicCamera con posición, rotación, matrices View/Projection        |
+| **glm Integration**      | Completo  | Matrices y vectores para transformaciones de cámara                        |
+| Triángulo de prueba      | Funcional | Renderizado con abstracción completa y cámara controlable                  |
 
 ### En Progreso / Pendiente
 
-| Módulo                        | Estado              | Notas                                                                                                                        |
-| ----------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Renderer Abstraction          | **No iniciado**     | Solo existe la interfaz `GraphicsContext`. Faltan: Shader, VertexBuffer, IndexBuffer, VertexArray, RenderCommand, Renderer2D |
-| Delta Time                    | **No implementado** | `OnUpdate()` no recibe timestep                                                                                              |
-| Event Buffering               | **No implementado** | Los eventos se despachan inmediatamente (se menciona como trabajo futuro en `Event.h`)                                       |
-| Eventos WindowFocus/Move      | **No implementado** | Los enum values existen pero no hay callbacks GLFW que los disparen                                                          |
-| glm (math)                    | **Sin usar**        | Está vendorizado e incluido en los paths, pero ningún archivo del motor lo referencia                                        |
-| Cámara                        | **No iniciado**     | No hay sistema de cámara                                                                                                     |
-| Shaders                       | **No iniciado**     | No hay abstracción de shaders                                                                                                |
-| Manejo de Texturas            | **No iniciado**     | —                                                                                                                            |
-| Scene Graph                   | **No iniciado**     | —                                                                                                                            |
-| ECS (Entity Component System) | **No iniciado**     | —                                                                                                                            |
-| Audio                         | **No iniciado**     | —                                                                                                                            |
-| Física                        | **No iniciado**     | —                                                                                                                            |
-| Voxel System                  | **No iniciado**     | Objetivo final del motor                                                                                                     |
+| Módulo                        | Estado              | Notas                                                                 |
+| ----------------------------- | ------------------- | --------------------------------------------------------------------- |
+| Delta Time                    | **No implementado** | `OnUpdate()` no recibe timestep                                       |
+| Event Buffering               | **No implementado** | Los eventos se despachan inmediatamente (trabajo futuro en `Event.h`) |
+| Eventos WindowFocus/Move      | **No implementado** | Los enum values existen pero no hay callbacks GLFW que los disparen   |
+| Texturas                      | **No iniciado**     | No hay sistema de carga/binding de texturas                           |
+| Renderer2D                    | **No iniciado**     | Batching de sprites/quads                                             |
+| Scene Graph                   | **No iniciado**     | —                                                                     |
+| ECS (Entity Component System) | **No iniciado**     | —                                                                     |
+| Audio                         | **No iniciado**     | —                                                                     |
+| Física                        | **No iniciado**     | —                                                                     |
+| Voxel System                  | **No iniciado**     | Objetivo final del motor                                              |
 
 ### Roadmap Sugerido
 
@@ -495,9 +637,11 @@ gantt
     Logging                   :done, 2025-01, 2025-03
 
     section Renderer
-    Shader Abstraction        :active, 2026-02, 2026-04
-    Buffer Objects (VBO/VAO)  : 2026-03, 2026-05
-    Render Commands           : 2026-04, 2026-06
+    Shader Abstraction        :done, 2026-01, 2026-02
+    Buffer Objects (VBO/VAO)  :done, 2026-01, 2026-02
+    Render Commands           :done, 2026-02, 2026-02
+    Cámara Ortográfica        :done, 2026-02, 2026-02
+    Texturas                  :active, 2026-02, 2026-04
     Cámara 2D/3D              : 2026-05, 2026-07
     Texturas                  : 2026-06, 2026-08
     Renderer2D                : 2026-07, 2026-09
@@ -507,6 +651,98 @@ gantt
     Scene Graph               : 2026-08, 2026-10
     ECS                       : 2026-09, 2026-12
     Sistema Voxel             : 2027-01, 2027-06
+```
+
+---
+
+## Sandbox - Aplicación de Ejemplo
+
+El proyecto **Sandbox** es una aplicación de demostración que muestra las capacidades del motor Lore Engine.
+
+### ExampleLayer
+
+La capa principal que demuestra:
+
+- **Renderizado**: Triángulo con colores por vértice usando el sistema de renderizado abstraído
+- **Cámara Controlable**: Movimiento con flechas (↑↓←→), rotación con Q/E
+- **Generación de Laberintos**: Algoritmo BinaryTree mostrado en ventana ImGui
+
+### Controles
+
+| Tecla | Acción                              |
+| ----- | ----------------------------------- |
+| ← →   | Mover cámara horizontalmente        |
+| ↑ ↓   | Mover cámara verticalmente          |
+| Q     | Rotar cámara en sentido antihorario |
+| E     | Rotar cámara en sentido horario     |
+
+### Módulo Maze
+
+Sistema de generación procedural de laberintos implementado como ejemplo de lógica de juego independiente del motor.
+
+#### Estructura
+
+```text
+Maze/
+├── Base/
+│   ├── Cell.h/.cpp     # Celda individual del laberinto
+│   └── Grid.h/.cpp     # Matriz 2D de celdas
+└── Algorithms/
+    └── BinaryTree.h/.cpp  # Algoritmo de generación
+```
+
+#### Clases
+
+**Cell** - Representa una celda del laberinto:
+
+- Coordenadas (fila, columna)
+- Referencias a vecinos (North, South, East, West)
+- Sistema de enlaces bidireccionales entre celdas
+- Métodos: `Link()`, `Unlink()`, `IsLinked()`, `GetNeighbors()`
+
+**Grid** - Matriz contenedora de celdas:
+
+- Dimensiones configurables (filas × columnas)
+- Iteradores `EachRow()` y `EachCell()` con callbacks
+- Acceso por coordenadas con `operator()(row, col)`
+- Método `ToString()` para representación ASCII
+- Método `RandomCell()` para selección aleatoria
+
+**BinaryTree** - Algoritmo de generación:
+
+- Método estático `On(Grid)` que procesa el grid
+- Para cada celda, elige aleatoriamente entre Norte o Este
+- Crea enlaces (pasajes) entre celdas adyacentes
+- Produce laberintos con sesgo hacia esquina NE
+
+#### Ejemplo de Uso
+
+```cpp
+#include "Maze/Algorithms/BinaryTree.h"
+
+// Crear grid de 50x50 celdas
+Maze::Grid grid{ 50, 50 };
+
+// Aplicar algoritmo BinaryTree
+grid = Maze::BinaryTree::On(grid);
+
+// Obtener representación ASCII
+std::string mazeString = grid.ToString();
+
+// Mostrar en ImGui
+ImGui::Text("%s", mazeString.c_str());
+```
+
+#### Salida de Ejemplo
+
+```text
++---+---+---+---+---+
+|               |   |
++   +---+---+   +   +
+|   |       |   |   |
++   +   +---+   +   +
+|   |   |   |       |
++---+---+---+---+---+
 ```
 
 ---
@@ -552,31 +788,44 @@ El motor define `main()` internamente mediante `EntryPoint.h`. Solo necesitas de
 
 ```cpp
 #include <Lore.h>
+#include <imgui.h>
 
 class GameLayer : public Lore::Layer {
+private:
+    std::shared_ptr<Lore::Shader> m_Shader;
+    std::shared_ptr<Lore::VertexArray> m_VertexArray;
+    Lore::OrthographicCamera m_Camera;
+    glm::vec3 m_CameraPosition{ 0.0f, 0.0f, 0.0f };
+
 public:
-    GameLayer() : Layer("Game") {}
+    GameLayer() : Layer("Game"), m_Camera(-1.6f, 1.6f, -0.9f, 0.9f) {
+        // Configurar vertex array, buffers y shader...
+        m_VertexArray.reset(Lore::VertexArray::Create());
+        // ... (ver SandboxApp.cpp para ejemplo completo)
+    }
 
     void OnUpdate() override {
-        // Lógica de juego
-        if (Lore::Input::IsKeyPressed(LR_KEY_W))
-            LR_INFO("Tecla W presionada");
+        // Control de cámara
+        if (Lore::Input::IsKeyPressed(LR_KEY_LEFT))
+            m_CameraPosition.x -= 0.05f;
+        if (Lore::Input::IsKeyPressed(LR_KEY_RIGHT))
+            m_CameraPosition.x += 0.05f;
+
+        m_Camera.SetPosition(m_CameraPosition);
+
+        // Renderizado
+        Lore::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
+        Lore::RenderCommand::Clear();
+
+        Lore::Renderer::BeginScene(m_Camera);
+        Lore::Renderer::Submit(m_VertexArray, m_Shader);
+        Lore::Renderer::EndScene();
     }
 
     void OnImGuiRender() override {
         ImGui::Begin("Debug");
-        ImGui::Text("Hola desde Lore Engine!");
+        ImGui::Text("Camera: %.2f, %.2f", m_CameraPosition.x, m_CameraPosition.y);
         ImGui::End();
-    }
-
-    void OnEvent(Lore::Event& event) override {
-        // Manejar eventos específicos
-        Lore::EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<Lore::KeyPressedEvent>(
-            [](Lore::KeyPressedEvent& e) {
-                LR_INFO("Key: {0}", e.GetKeyCode());
-                return false;
-            });
     }
 };
 
@@ -622,6 +871,42 @@ if (Lore::Input::IsMouseButtonPressed(LR_MOUSE_BUTTON_LEFT))
 auto [x, y] = Lore::Input::GetMousePosition();
 ```
 
+### Sistema de Renderizado
+
+```cpp
+// Crear recursos
+auto vertexArray = std::shared_ptr<Lore::VertexArray>(Lore::VertexArray::Create());
+auto vertexBuffer = std::shared_ptr<Lore::VertexBuffer>(
+    Lore::VertexBuffer::Create(vertices, sizeof(vertices)));
+
+vertexBuffer->SetLayout({
+    { Lore::ShaderDataType::Float3, "a_Position" },
+    { Lore::ShaderDataType::Float4, "a_Color" },
+});
+vertexArray->AddVertexBuffer(vertexBuffer);
+
+auto indexBuffer = std::shared_ptr<Lore::IndexBuffer>(
+    Lore::IndexBuffer::Create(indices, count));
+vertexArray->SetIndexBuffer(indexBuffer);
+
+// Crear shader (GLSL)
+auto shader = std::shared_ptr<Lore::Shader>(
+    new Lore::Shader(vertexSource, fragmentSource));
+
+// Crear cámara
+Lore::OrthographicCamera camera(-1.6f, 1.6f, -0.9f, 0.9f);
+camera.SetPosition({ 0.0f, 0.0f, 0.0f });
+camera.SetRotation(0.0f);
+
+// En el game loop (OnUpdate)
+Lore::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+Lore::RenderCommand::Clear();
+
+Lore::Renderer::BeginScene(camera);
+Lore::Renderer::Submit(vertexArray, shader);
+Lore::Renderer::EndScene();
+```
+
 ---
 
 ## Configuraciones de Build
@@ -636,14 +921,15 @@ auto [x, y] = Lore::Input::GetMousePosition();
 
 ## Patrones de Diseño Utilizados
 
-| Patrón              | Uso                                                                     |
-| ------------------- | ----------------------------------------------------------------------- |
-| **Singleton**       | `Application`, `Input` — acceso global a instancia única                |
-| **Factory Method**  | `Window::Create()` — crea la implementación correcta por plataforma     |
-| **Observer**        | Sistema de eventos — callbacks GLFW → `Event` → `Application` → `Layer` |
-| **Template Method** | `Layer` — define hooks virtuales que las subclases implementan          |
-| **Strategy**        | `Input`, `Window` — interfaz común con implementaciones intercambiables |
-| **Composite**       | `LayerStack` — colección ordenada de `Layer` con iteración uniforme     |
+| Patrón              | Uso                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| **Singleton**       | `Application`, `Input` — acceso global a instancia única                                  |
+| **Factory Method**  | `Window::Create()`, `VertexArray::Create()`, `Buffer::Create()` — creación por plataforma |
+| **Observer**        | Sistema de eventos — callbacks GLFW → `Event` → `Application` → `Layer`                   |
+| **Template Method** | `Layer` — define hooks virtuales que las subclases implementan                            |
+| **Strategy**        | `Input`, `Window`, `RendererAPI` — interfaz común con implementaciones intercambiables    |
+| **Composite**       | `LayerStack` — colección ordenada de `Layer` con iteración uniforme                       |
+| **Command**         | `RenderCommand` — encapsula operaciones de renderizado como métodos estáticos             |
 
 ---
 
