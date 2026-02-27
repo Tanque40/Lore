@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <ostream>
 #include <iostream>
+#include <fstream>
 
 #ifdef LORE_PLATFORM_WINDOWS
 #include <Windows.h>

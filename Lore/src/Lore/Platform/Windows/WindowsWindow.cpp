@@ -42,10 +42,10 @@ namespace Lore {
 		if (!s_GLFWInitialized) {
 			int success = glfwInit();
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-			const char* glsl_version = "#version 410";
+			const char* glsl_version = "#version 460";
 
 			LR_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);

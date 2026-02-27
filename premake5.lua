@@ -120,7 +120,7 @@ project "Sandbox"
 
 	files{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
 	}
 
 	includedirs {
@@ -158,6 +158,10 @@ project "Sandbox"
 		cppdialect "C++latest"
 		staticruntime "on"
 		architecture 'x64'
+
+		files {
+			"%{prj.name}/src/**.glsl"
+		}
 
 		defines {
 			"LORE_PLATFORM_WINDOWS",

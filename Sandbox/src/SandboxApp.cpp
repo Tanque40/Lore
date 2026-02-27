@@ -51,36 +51,7 @@ public:
 		m_IndexBuffer.reset(Lore::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
-		std::string vertexSrc = R"(
-			#version 410 core
-
-			layout(location = 0) in vec3 a_Position;
-			layout(location = 1) in vec4 a_Color;
-
-			uniform mat4 u_ViewProjection;
-			uniform mat4 u_Transform;
-
-			out vec4 v_Color;
-
-			void main() {
-				gl_Position =  u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
-				v_Color = a_Color;
-			}
-		)";
-
-		std::string fragmentSrc = R"(
-			#version 410 core
-
-			in vec4 v_Color;
-
-			out vec4 color;
-
-			void main() {
-				color = v_Color;
-			}
-		)";
-
-		m_Shader.reset(new Lore::Shader(vertexSrc, fragmentSrc));
+		m_Shader.reset(Lore::Shader::Create("src/Shaders/main.vertex.glsl", "src/Shaders/main.fragment.glsl", ""));
 	}
 
 	~ExampleLayer() {
