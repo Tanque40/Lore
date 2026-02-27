@@ -18,6 +18,7 @@ private:
 	Lore::OrthographicCamera m_Camera;
 	glm::vec3 m_CameraPosition{ 0.0f, 0.0f, 0.0f };
 	float m_CameraSpeed = 0.05f;
+	float m_CameraRotationSpeed = 1.0f;
 
 public:
 	ExampleLayer() : Layer("Example"), m_Camera(-1.6f, 1.6f, -0.9f, 0.9f) {
@@ -99,6 +100,10 @@ public:
 		if (Lore::Input::IsKeyPressed(LR_KEY_DOWN))
 			m_CameraPosition.y -= m_CameraSpeed;
 
+		if (Lore::Input::IsKeyPressed(LR_KEY_Q))
+			m_Camera.SetRotation(m_Camera.GetRotation() + m_CameraRotationSpeed);
+		if (Lore::Input::IsKeyPressed(LR_KEY_E))
+			m_Camera.SetRotation(m_Camera.GetRotation() - m_CameraRotationSpeed);
 
 		Lore::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 		Lore::RenderCommand::Clear();
