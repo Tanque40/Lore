@@ -5,6 +5,8 @@
 
 #include "Maze/Algorithms/BinaryTree.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 class ExampleLayer : public Lore::Layer {
 private:
 	Maze::Grid m_Grid{ 50, 50 };
@@ -20,8 +22,11 @@ private:
 	float m_CameraSpeed = 1.0f;
 	float m_CameraRotationSpeed = 180.0f;
 
+	glm::vec3 trianglePosition;
+	float m_TriangleMoveSpeed = 1.0f;
+
 public:
-	ExampleLayer() : Layer("Example"), m_Camera(-1.6f, 1.6f, -0.9f, 0.9f) {
+	ExampleLayer() : Layer("Example"), m_Camera(-1.6f, 1.6f, -0.9f, 0.9f), trianglePosition(0.0f) {
 		m_VertexArray.reset(Lore::VertexArray::Create());
 
 		float vertices[3 * 7]{
@@ -53,11 +58,12 @@ public:
 			layout(location = 1) in vec4 a_Color;
 
 			uniform mat4 u_ViewProjection;
+			uniform mat4 u_Transform;
 
 			out vec4 v_Color;
 
 			void main() {
-				gl_Position =  u_ViewProjection * vec4(a_Position, 1.0);
+				gl_Position =  u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
 				v_Color = a_Color;
 			}
 		)";
@@ -105,6 +111,15 @@ public:
 		if (Lore::Input::IsKeyPressed(LR_KEY_E))
 			m_Camera.SetRotation(m_Camera.GetRotation() - m_CameraRotationSpeed * ts);
 
+		if (Lore::Input::IsKeyPressed(LR_KEY_W))
+			trianglePosition.y += m_TriangleMoveSpeed * ts;
+		if (Lore::Input::IsKeyPressed(LR_KEY_S))
+			trianglePosition.y -= m_TriangleMoveSpeed * ts;
+		if (Lore::Input::IsKeyPressed(LR_KEY_A))
+			trianglePosition.x -= m_TriangleMoveSpeed * ts;
+		if (Lore::Input::IsKeyPressed(LR_KEY_D))
+			trianglePosition.x += m_TriangleMoveSpeed * ts;
+
 		Lore::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 		Lore::RenderCommand::Clear();
 
@@ -112,7 +127,9 @@ public:
 
 		Lore::Renderer::BeginScene(m_Camera);
 
-		Lore::Renderer::Submit(m_VertexArray, m_Shader);
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), trianglePosition);
+
+		Lore::Renderer::Submit(m_VertexArray, m_Shader, transform);
 
 		Lore::Renderer::EndScene();
 	}
