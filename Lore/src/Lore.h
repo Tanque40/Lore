@@ -13,6 +13,17 @@
 
 #include "Lore/ImGui/ImGuiLayer.h"
 
+// ! Renderer !
+#include "Lore/Renderer/Renderer.h"
+#include "Lore/Renderer/RenderCommand.h"
+
+#include "Lore/Renderer/Buffer.h"
+#include "Lore/Renderer/Shader.h"
+#include "Lore/Renderer/VertexArray.h"
+
+#include "Lore/Renderer/OrthographicCamera.h"
+// ! ******** !
+
 // ! Entry Point !
 #include "Lore/EntryPoint.h"
 // ! *********** !
