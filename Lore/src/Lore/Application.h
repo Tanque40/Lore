@@ -11,6 +11,7 @@
 #include "Lore/Renderer/Shader.h"
 #include "Lore/Renderer/Buffer.h"
 #include "Lore/Renderer/VertexArray.h"
+#include "Lore/Renderer/OrthographicCamera.h"
 
 namespace Lore {
 
@@ -27,6 +28,8 @@ namespace Lore {
 		std::shared_ptr<VertexArray> m_VertexArray;
 		std::shared_ptr<VertexBuffer> m_VertexBuffer;
 		std::shared_ptr<IndexBuffer> m_IndexBuffer;
+
+		OrthographicCamera m_Camera;
 	public:
 		Application();
 		virtual ~Application();

@@ -3,6 +3,8 @@
 
 #include <glad/glad.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Lore {
 
 	Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) {
@@ -95,6 +97,11 @@ namespace Lore {
 
 	void Shader::Unbind() {
 		glUseProgram(0);
+	}
+
+	void Shader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
 }
