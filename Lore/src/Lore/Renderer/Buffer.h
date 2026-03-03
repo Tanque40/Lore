@@ -121,4 +121,16 @@ namespace Lore {
 
 		static IndexBuffer* Create(uint32_t* indices, uint32_t count);
 	};
+
+	class StorageBuffer {
+	public:
+		virtual ~StorageBuffer() = default;
+
+		virtual void Bind(uint32_t slot) const = 0;
+		virtual void Unbind() const = 0;
+
+		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+
+		static StorageBuffer* Create(uint32_t size, uint32_t binding);
+	};
 }

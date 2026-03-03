@@ -36,7 +36,7 @@ namespace Lore {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;    // Multi-viewport not yet supported with Metal backend
+		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;    // Multi-viewport not yet supported with Metal backend
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
@@ -82,8 +82,8 @@ namespace Lore {
 	}
 
 	void ImGuiLayer::OnImGuiRender() {
-		//static bool show = true;
-		//ImGui::ShowDemoWindow(&show);
+		static bool show = true;
+		ImGui::ShowDemoWindow(&show);
 
 		// Render the viewport panel showing the framebuffer content
 		RenderViewport();
@@ -176,7 +176,7 @@ namespace Lore {
 			ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.25f, &dock_left, &dock_right);
 
 			ImGui::DockBuilderDockWindow("Compute-First Demo", dock_left);
-			//ImGui::DockBuilderDockWindow("Dear ImGui Demo", dock_left);
+			ImGui::DockBuilderDockWindow("Dear ImGui Demo", dock_left);
 			ImGui::DockBuilderDockWindow("Viewport", dock_right);
 
 			ImGui::DockBuilderFinish(dockspace_id);

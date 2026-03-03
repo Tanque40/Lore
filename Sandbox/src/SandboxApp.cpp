@@ -9,7 +9,12 @@
 
 class ExampleLayer : public Lore::Layer {
 private:
-	Maze::Grid m_Grid{ 50, 50 };
+	// For calculating FPS
+	float m_FPS = 0.0f;
+	float m_FrameTime = 0.0f;
+
+	uint32_t m_GridDimension = 10;
+	Maze::Grid m_Grid;
 	std::string m_GridString = "";
 
 	// Compute-First pipeline resources
@@ -20,12 +25,15 @@ private:
 	uint32_t m_Height = 600;
 
 public:
-	ExampleLayer() : Layer("Example") {
+	ExampleLayer() : Layer("Example"), m_Grid(m_GridDimension, m_GridDimension) {
+		// Initialize compute shader and texture
 #ifdef LORE_PLATFORM_MAC
 		m_ComputeShader.reset(Lore::ComputeShader::Create("Sandbox/src/Shaders/Metal/Main.compute.metal"));
 #elif defined(LORE_PLATFORM_WINDOWS)
 		m_ComputeShader.reset(Lore::ComputeShader::Create("src/Shaders/OpenGL/Main.compute.glsl"));
 #endif
+		m_Width = Lore::Application::Get().GetWindow().GetWidth();
+		m_Height = Lore::Application::Get().GetWindow().GetHeight();
 		m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 	}
 
@@ -35,11 +43,13 @@ public:
 	}
 
 	void OnAttach() override {
-		m_Grid = Maze::BinaryTree::On(m_Grid);
-		m_GridString = m_Grid.ToString();
 	}
 
 	void OnUpdate(Lore::TimeStep ts) override {
+		// Update FPS and frame time
+		m_FrameTime = ts.GetSeconds();
+		m_FPS = 1.0f / m_FrameTime;
+
 		// 1. Bind compute resources
 		m_ComputeShader->Bind();
 		m_ComputeTexture->BindAsImage(0);
@@ -59,13 +69,36 @@ public:
 	}
 
 	void OnImGuiRender() override {
+		Lore::Application& app = Lore::Application::Get();
+		Lore::FramebufferSpecification spec = app.GetFramebuffer().GetSpecification();
 		ImGui::Begin("Compute-First Demo");
-		ImGui::Text("Resolution: %dx%d", m_Width, m_Height);
-		ImGui::Text("%s", m_GridString.c_str());
+
+		if (!ImGui::CollapsingHeader("Stats")) {
+			ImGui::BeginChild("Stats Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+			ImGui::Text("Resolution: %dx%d", m_Width, m_Height);
+			ImGui::Text("Framebuffer Size: %dx%d", spec.Width, spec.Height);
+			ImGui::Text("FPS: %.2f (%.2f ms)", m_FPS, m_FrameTime * 1000.0f);
+			ImGui::EndChild();
+		}
+
+		if (!ImGui::CollapsingHeader("Maze")) {
+
+			ImGui::Text("%s", m_GridString.c_str());
+		}
+
 		ImGui::End();
 	}
 
 	void OnEvent(Lore::Event& event) override {
+		Lore::EventDispatcher dispatcher(event);
+		dispatcher.Dispatch<Lore::WindowResizeEvent>(LR_BIND_EVENT_FN(ExampleLayer::WindowResize));
+	}
+
+	bool WindowResize(Lore::WindowResizeEvent& e) {
+		m_Width = e.GetWidth();
+		m_Height = e.GetHeight();
+		m_ComputeTexture->Resize(m_Width, m_Height);
+		return false;
 	}
 };
 

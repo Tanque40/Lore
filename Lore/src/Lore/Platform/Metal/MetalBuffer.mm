@@ -70,7 +70,42 @@ namespace Lore {
 		// Metal doesn't have a concept of unbinding buffers
 	}
 
+MetalStorageBuffer::MetalStorageBuffer(uint32_t size, uint32_t binding) : m_Binding(binding) {
+		id<MTLDevice> device = (__bridge id<MTLDevice>)MetalContext::Get()->GetDevice();
 
+		id<MTLBuffer> buffer = [device newBufferWithLength:size
+												   options:MTLResourceStorageModeShared];
+		LR_CORE_ASSERT(buffer, "Failed to create Metal storage buffer!");
+		m_Buffer = (__bridge_retained void*)buffer;
+	}
+
+	MetalStorageBuffer::~MetalStorageBuffer() {
+		if (m_Buffer) {
+			CFRelease(m_Buffer);
+			m_Buffer = nullptr;
+		}
+	}
+
+	void MetalStorageBuffer::Bind(uint32_t slot) const {
+		if (!MetalContext::Get() || !MetalContext::Get()->GetCurrentEncoder())
+			return;
+
+		id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)m_Buffer;
+
+		// Dependiendo de si estás en Compute o Render, esto cambia.
+		id<MTLComputeCommandEncoder> encoder = (__bridge id<MTLComputeCommandEncoder>)MetalContext::Get()->GetCurrentEncoder();
+		[encoder setBuffer:buffer offset:0 atIndex:slot];
+	}
+
+	void MetalStorageBuffer::Unbind() const {
+		// Metal no requiere unbind
+	}
+
+	void MetalStorageBuffer::SetData(const void* data, uint32_t size, uint32_t offset) {
+		id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)m_Buffer;
+		void* gpuPtr = (uint8_t*)[buffer contents] + offset;
+		memcpy(gpuPtr, data, size);
+	}
 
 }
 

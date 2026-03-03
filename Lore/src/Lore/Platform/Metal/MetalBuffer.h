@@ -42,6 +42,19 @@ namespace Lore {
 		inline virtual void* GetNativeHandle() const override { return m_Buffer; }
 	};
 
+	class MetalStorageBuffer : public StorageBuffer {
+	private:
+		void* m_Buffer = nullptr;   // id<MTLBuffer>
+		uint32_t m_Binding;
+
+	public:
+		MetalStorageBuffer(uint32_t size, uint32_t binding);
+		virtual ~MetalStorageBuffer();
+
+		virtual void Bind(uint32_t slot) const override;
+		virtual void Unbind() const override;
+		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
+	};
 }
 
 #endif // LORE_PLATFORM_MAC

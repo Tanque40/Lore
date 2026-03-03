@@ -35,4 +35,16 @@ namespace Lore {
 		inline virtual uint32_t GetCount() const override { return m_Count; }
 	};
 
+	class OpenGLStorageBuffer : public StorageBuffer {
+	private:
+		uint32_t m_RendererID;
+		uint32_t m_Binding;
+	public:
+		OpenGLStorageBuffer(uint32_t size, uint32_t binding);
+		virtual ~OpenGLStorageBuffer();
+
+		virtual void Bind(uint32_t slot) const override;
+		virtual void Unbind() const override;
+		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
+	};
 }
