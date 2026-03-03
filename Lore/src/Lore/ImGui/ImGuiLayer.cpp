@@ -82,8 +82,8 @@ namespace Lore {
 	}
 
 	void ImGuiLayer::OnImGuiRender() {
-		static bool show = true;
-		ImGui::ShowDemoWindow(&show);
+		//static bool show = true;
+		//ImGui::ShowDemoWindow(&show);
 
 		// Render the viewport panel showing the framebuffer content
 		RenderViewport();
@@ -173,10 +173,10 @@ namespace Lore {
 			ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
 			ImGuiID dock_left, dock_right;
-			ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.3f, &dock_left, &dock_right);
+			ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.25f, &dock_left, &dock_right);
 
-			ImGui::DockBuilderDockWindow("SandBox Test", dock_left);
-			ImGui::DockBuilderDockWindow("Dear ImGui Demo", dock_left);
+			ImGui::DockBuilderDockWindow("Compute-First Demo", dock_left);
+			//ImGui::DockBuilderDockWindow("Dear ImGui Demo", dock_left);
 			ImGui::DockBuilderDockWindow("Viewport", dock_right);
 
 			ImGui::DockBuilderFinish(dockspace_id);

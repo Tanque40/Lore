@@ -214,26 +214,26 @@ namespace Lore {
 
 		// Inline MSL blit shader: full-screen triangle using vertex_id
 		NSString* blitShaderSource = @R"(
-#include <metal_stdlib>
-using namespace metal;
+			#include <metal_stdlib>
+			using namespace metal;
 
-struct BlitOut {
-    float4 position [[position]];
-    float2 texCoord;
-};
+			struct BlitOut {
+				float4 position [[position]];
+				float2 texCoord;
+			};
 
-vertex BlitOut blit_vertex(uint vid [[vertex_id]]) {
-    BlitOut out;
-    out.texCoord = float2((vid << 1) & 2, vid & 2);
-    out.position = float4(out.texCoord * 2.0 - 1.0, 0.0, 1.0);
-    return out;
-}
+			vertex BlitOut blit_vertex(uint vid [[vertex_id]]) {
+				BlitOut out;
+				out.texCoord = float2((vid << 1) & 2, vid & 2);
+				out.position = float4(out.texCoord * 2.0 - 1.0, 0.0, 1.0);
+				return out;
+			}
 
-fragment float4 blit_fragment(BlitOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
-    constexpr sampler s(filter::nearest);
-    return tex.sample(s, in.texCoord);
-}
-)";
+			fragment float4 blit_fragment(BlitOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
+				constexpr sampler s(filter::nearest);
+				return tex.sample(s, in.texCoord);
+			}
+		)";
 
 		NSError* error = nil;
 		MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
