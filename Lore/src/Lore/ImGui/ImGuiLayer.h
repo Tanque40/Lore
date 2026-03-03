@@ -11,6 +11,7 @@ namespace Lore {
 	class  ImGuiLayer : public Layer {
 	private:
 		float m_Time = 0.0f;
+		bool m_DockspaceInitialized = false;
 
 	public:
 		ImGuiLayer();
@@ -22,6 +23,11 @@ namespace Lore {
 
 		void Begin();
 		void End();
+
+	private:
+		void BeginDockspace();
+		void EndDockspace();
+		void RenderViewport();
 	};
 
 }

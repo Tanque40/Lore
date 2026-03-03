@@ -8,6 +8,7 @@
 #include "Lore/Core/TimeStep.h"
 
 #include "Lore/ImGui/ImGuiLayer.h"
+#include "Lore/Renderer/Framebuffer.h"
 
 namespace Lore {
 
@@ -18,6 +19,7 @@ namespace Lore {
 		bool m_Running = true;
 		LayerStack m_LayerStack;
 
+		Framebuffer* m_Framebuffer = nullptr;
 		TimeStep m_TimeStep;
 		float m_LastFrameTime = 0.0f;
 
@@ -34,6 +36,7 @@ namespace Lore {
 		void PushOverlay(Layer* overlay);
 
 		inline Window& GetWindow() { return *m_Window; }
+		inline Framebuffer& GetFramebuffer() { return *m_Framebuffer; }
 		inline static Application& Get() { return *s_Instance; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);

@@ -22,6 +22,7 @@ namespace Lore {
 		void* m_CurrentEncoder = nullptr;        // id<MTLRenderCommandEncoder>
 		void* m_CurrentCommandBuffer = nullptr;  // id<MTLCommandBuffer>
 		void* m_CurrentPassDescriptor = nullptr; // MTLRenderPassDescriptor*
+		void* m_OffscreenTexture = nullptr;       // id<MTLTexture> for offscreen rendering
 
 		glm::vec4 m_ClearColor{ 0.1f, 0.1f, 0.1f, 1.0f };
 
@@ -46,6 +47,10 @@ namespace Lore {
 
 		void SetClearColor(const glm::vec4& color) { m_ClearColor = color; }
 
+		// Offscreen rendering support
+		void SetOffscreenTexture(void* texture) { m_OffscreenTexture = texture; }
+		void ClearOffscreenTexture() { m_OffscreenTexture = nullptr; }
+		void EndCurrentPass();
 
 		static MetalContext* Get() { return s_Instance; }
 	};

@@ -22,6 +22,7 @@
 #include "Lore/Renderer/Buffer.h"
 #include "Lore/Renderer/Shader.h"
 #include "Lore/Renderer/VertexArray.h"
+#include "Lore/Renderer/Framebuffer.h"
 
 #include "Lore/Renderer/OrthographicCamera.h"
 // ! ******** !

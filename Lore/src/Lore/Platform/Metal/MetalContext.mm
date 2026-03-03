@@ -88,9 +88,44 @@ namespace Lore {
 	}
 
 	void MetalContext::BeginFrame() {
-		CAMetalLayer* layer = (__bridge CAMetalLayer*)m_Layer;
-		id<MTLDevice> device = (__bridge id<MTLDevice>)m_Device;
 		id<MTLCommandQueue> commandQueue = (__bridge id<MTLCommandQueue>)m_CommandQueue;
+
+		if (m_OffscreenTexture) {
+			// Offscreen rendering: target the offscreen texture
+			id<MTLTexture> offscreenTex = (__bridge id<MTLTexture>)m_OffscreenTexture;
+
+			MTLRenderPassDescriptor* passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+			passDescriptor.colorAttachments[0].texture = offscreenTex;
+			passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+			passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+			passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(
+				m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a
+			);
+			m_CurrentPassDescriptor = (__bridge void*)passDescriptor;
+
+			id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+			commandBuffer.label = @"LoreOffscreenCommandBuffer";
+			m_CurrentCommandBuffer = (__bridge void*)commandBuffer;
+
+			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+			encoder.label = @"LoreOffscreenRenderEncoder";
+			m_CurrentEncoder = (__bridge void*)encoder;
+
+			// Set viewport to match offscreen texture size
+			MTLViewport viewport;
+			viewport.originX = 0;
+			viewport.originY = 0;
+			viewport.width = offscreenTex.width;
+			viewport.height = offscreenTex.height;
+			viewport.znear = 0.0;
+			viewport.zfar = 1.0;
+			[encoder setViewport:viewport];
+
+			return;
+		}
+
+		// Screen rendering: acquire drawable and render to screen
+		CAMetalLayer* layer = (__bridge CAMetalLayer*)m_Layer;
 
 		// Update drawable size in case window was resized
 		int width, height;
@@ -124,6 +159,22 @@ namespace Lore {
 		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 		encoder.label = @"LoreRenderEncoder";
 		m_CurrentEncoder = (__bridge void*)encoder;
+	}
+
+	void MetalContext::EndCurrentPass() {
+		if (!m_CurrentEncoder || !m_CurrentCommandBuffer)
+			return;
+
+		id<MTLRenderCommandEncoder> encoder = (__bridge id<MTLRenderCommandEncoder>)m_CurrentEncoder;
+		id<MTLCommandBuffer> commandBuffer = (__bridge id<MTLCommandBuffer>)m_CurrentCommandBuffer;
+
+		[encoder endEncoding];
+		[commandBuffer commit];
+		[commandBuffer waitUntilCompleted];
+
+		m_CurrentEncoder = nullptr;
+		m_CurrentCommandBuffer = nullptr;
+		m_CurrentPassDescriptor = nullptr;
 	}
 
 	void MetalContext::SwapBuffers() {

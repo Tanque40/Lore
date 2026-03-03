@@ -1,6 +1,8 @@
 #include "lrpch.h"
 
 #include "Application.h"
+#include "Lore/Renderer/Framebuffer.h"
+#include "Lore/Renderer/RenderCommand.h"
 
 namespace Lore {
 
@@ -15,11 +17,18 @@ namespace Lore {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
+		// Create offscreen framebuffer for the viewport
+		FramebufferSpecification fbSpec;
+		fbSpec.Width = 1280;
+		fbSpec.Height = 720;
+		m_Framebuffer = Framebuffer::Create(fbSpec);
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() {
+		delete m_Framebuffer;
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -47,13 +56,17 @@ namespace Lore {
 	void Application::Run() {
 
 		while (m_Running) {
-			float time = (float) m_Window->GetTime();
+			float time = (float)m_Window->GetTime();
 			m_TimeStep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 
+			// Render scene to offscreen framebuffer
+			m_Framebuffer->Bind();
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(m_TimeStep);
+			m_Framebuffer->Unbind();
 
+			// Render ImGui (dockspace + viewport + panels) to screen
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
 				layer->OnImGuiRender();

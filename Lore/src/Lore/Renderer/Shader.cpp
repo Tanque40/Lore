@@ -40,7 +40,6 @@ namespace Lore {
 	}
 
 	std::string Shader::ReadFile(const std::string& filePath) {
-		system("ls");
 		std::string result;
 		std::ifstream in(filePath, std::ios::in | std::ios::binary);
 		if (in) {
