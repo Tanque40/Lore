@@ -21,6 +21,10 @@ namespace Lore {
 	};
 
 	class OpenGLIndexBuffer : public IndexBuffer {
+	private:
+		uint32_t m_RendererID;
+		uint32_t m_Count;
+
 	public:
 		OpenGLIndexBuffer(uint32_t* indices, uint32_t count);
 		virtual ~OpenGLIndexBuffer();
@@ -29,10 +33,6 @@ namespace Lore {
 		virtual void Unbind() const override;
 
 		inline virtual uint32_t GetCount() const override { return m_Count; }
-
-	private:
-		uint32_t m_RendererID;
-		uint32_t m_Count;
 	};
 
 }

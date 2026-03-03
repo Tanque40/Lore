@@ -51,7 +51,11 @@ public:
 		m_IndexBuffer.reset(Lore::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
-		m_Shader.reset(Lore::Shader::Create("src/Shaders/main.vertex.glsl", "src/Shaders/main.fragment.glsl", ""));
+#ifdef LORE_PLATFORM_MAC
+		m_Shader.reset(Lore::Shader::Create("SandBox/src/Shaders/Metal/Main.vertex.metal", "SandBox/src/Shaders/Metal/Main.fragment.metal", ""));
+#elif defined(LORE_PLATFORM_WINDOWS)
+		m_Shader.reset(Lore::Shader::Create("src/Shaders/OpenGL/Main.vertex.glsl", "src/Shaders/OpenGL/Main.fragment.glsl", ""));
+#endif
 	}
 
 	~ExampleLayer() {

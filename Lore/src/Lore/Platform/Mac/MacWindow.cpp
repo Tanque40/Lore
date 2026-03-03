@@ -14,6 +14,8 @@
 #include <GLFW/glfw3.h>
 
 #include "Lore/Platform/OpenGL/OpenGLContext.h"
+#include "Lore/Platform/Metal/MetalContext.h"
+#include "Lore/Renderer/RendererAPI.h"
 
 namespace Lore {
 
@@ -44,14 +46,20 @@ namespace Lore {
 
 		if (!s_GLFWInitialized) {
 			int success = glfwInit();
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-			//	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-			const char* glsl_version = "#version 410";
+			if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {
+				glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+				glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+
+				const char* glsl_version = "#version 410";
 #ifdef __APPLE__
-			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // Required on Mac
+				glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // Required on Mac
 #endif
+			}
+			else if (RendererAPI::GetAPI() == RendererAPI::API::Metal) {
+				// Metal does not use an OpenGL context, tell GLFW not to create one
+				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+			}
 
 			LR_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);
@@ -60,10 +68,17 @@ namespace Lore {
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 
-		m_Context = new OpenGLContext(m_Window);
+		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {
+			m_Context = new OpenGLContext(m_Window);
+		}
+		else if (RendererAPI::GetAPI() == RendererAPI::API::Metal) {
+			m_Context = new MetalContext(m_Window);
+		}
 		m_Context->Init();
 
-		glfwMakeContextCurrent(m_Window);
+		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {
+			glfwMakeContextCurrent(m_Window);
+		}
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
@@ -165,10 +180,13 @@ namespace Lore {
 	}
 
 	void MacWindow::SetVSync(bool enabled) {
-		if (enabled)
-			glfwSwapInterval(1);
-		else
-			glfwSwapInterval(0);
+		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {
+			if (enabled)
+				glfwSwapInterval(1);
+			else
+				glfwSwapInterval(0);
+		}
+		// Metal VSync is controlled via CAMetalLayer.displaySyncEnabled
 
 		m_Data.VSync = enabled;
 	}

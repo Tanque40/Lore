@@ -6,6 +6,10 @@
 
 #include "Lore/Platform/OpenGL/OpenGLVertexArray.h"
 
+#ifdef LORE_PLATFORM_MAC
+#include "Lore/Platform/Metal/MetalVertexArray.h"
+#endif
+
 namespace Lore {
 
 	VertexArray* VertexArray::Create() {
@@ -16,6 +20,11 @@ namespace Lore {
 		case RendererAPI::API::OpenGL:
 			return new OpenGLVertexArray();
 			break;
+#ifdef LORE_PLATFORM_MAC
+		case RendererAPI::API::Metal:
+			return new MetalVertexArray();
+			break;
+#endif
 		}
 
 		LR_CORE_ASSERT(false, "Unknown RendererAPI!");

@@ -7,7 +7,7 @@
 
 namespace Lore {
 
-	OpenGLShader::OpenGLShader(const std::string& vertexPath = "", const std::string& fragmentPath = "", const std::string& computeShaderPath = "") {
+	OpenGLShader::OpenGLShader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& computeShaderPath) {
 		GLuint vertexShader, fragmentShader, computeShader;
 		if (!vertexPath.empty()) {
 			std::string vertexSource = ReadFile(vertexPath);
@@ -104,22 +104,6 @@ namespace Lore {
 	void OpenGLShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
 		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
-	}
-
-	std::string OpenGLShader::ReadFile(const std::string& filePath) {
-		std::string result;
-		std::ifstream in(filePath, std::ios::in | std::ios::binary);
-		if (in) {
-			in.seekg(0, std::ios::end);
-			result.resize(in.tellg());
-			in.seekg(0, std::ios::beg);
-			in.read(&result[0], result.size());
-			in.close();
-		}
-		else {
-			LR_CORE_ERROR("Could not open file: {0}", filePath);
-		}
-		return result;
 	}
 
 	GLuint OpenGLShader::CompileFragmentShader(const std::string& fragmentSrc) {

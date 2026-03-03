@@ -26,6 +26,9 @@ namespace Lore {
 		// * Set uniforms **********
 
 		static Shader* Create(const std::string& vertexPath, const std::string& fragmentPath, const std::string& computeShaderPath);
+
+	protected:
+		std::string ReadFile(const std::string& filePath);
 	};
 
 }

@@ -39,6 +39,12 @@ project "Lore"
 		"%{prj.name}/vendor/glm/glm/**.inl",
 	}
 
+	-- Compile .mm files as Objective-C++ without PCH
+	filter "files:**.mm"
+		compileas "Objective-C++"
+		enablepch "Off"
+	filter {}
+
 	includedirs {
 		"%{prj.name}/src",
 		"%{IncludeDirs.spdlog}",
@@ -53,6 +59,11 @@ project "Lore"
 		staticruntime "on"
 		architecture 'ARM64'
 
+		-- Include Objective-C++ files for Metal implementation
+		files {
+			"%{prj.name}/src/**.mm"
+		}
+
 		defines {
 			"LORE_PLATFORM_MAC",
 			"_CRT_SECURE_NO_WARNINGS",
@@ -66,8 +77,13 @@ project "Lore"
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
-			"QuartzCore.framework"
+			"QuartzCore.framework",
+			"Metal.framework",
+			"MetalKit.framework",
+			"Foundation.framework"
 		}
+
+		buildoptions { "-fobjc-arc" }
 
 	filter "system:windows"
 		cppdialect "C++latest"
@@ -144,6 +160,10 @@ project "Sandbox"
 			"LORE_PLATFORM_MAC"
 		}
 
+		files {
+			"%{prj.name}/src/**.metal"
+		}
+
 		links {
 			"IMGUI",
 			"GLFW",
@@ -151,7 +171,10 @@ project "Sandbox"
 			"Cocoa.framework",
 			"OpenGL.framework",
 			"IOKit.framework",
-			"QuartzCore.framework"
+			"QuartzCore.framework",
+			"Metal.framework",
+			"MetalKit.framework",
+			"Foundation.framework"
 		}
 
 	filter "system:windows"
