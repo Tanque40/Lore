@@ -67,6 +67,74 @@ namespace Lore {
 		[encoder setViewport:viewport];
 	}
 
+	void MetalRendererAPI::DispatchCompute(uint32_t groupX, uint32_t groupY, uint32_t groupZ) {
+		MetalContext* ctx = MetalContext::Get();
+		if (!ctx) return;
+
+		// End any active render pass before dispatching compute work
+		if (ctx->GetCurrentEncoder()) {
+			ctx->EndCurrentPass();
+		}
+
+		id<MTLCommandQueue> commandQueue = (__bridge id<MTLCommandQueue>)ctx->GetCommandQueue();
+		id<MTLComputePipelineState> computePipeline = (__bridge id<MTLComputePipelineState>)ctx->GetCurrentComputePipeline();
+		id<MTLTexture> computeTexture = (__bridge id<MTLTexture>)ctx->GetCurrentComputeTexture();
+
+		if (!computePipeline) {
+			LR_CORE_ERROR("No compute pipeline bound! Call ComputeShader::Bind() before DispatchCompute.");
+			return;
+		}
+
+		// Create a new command buffer for compute work
+		id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+		commandBuffer.label = @"LoreComputeCommandBuffer";
+
+		id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+		computeEncoder.label = @"LoreComputeEncoder";
+
+		[computeEncoder setComputePipelineState:computePipeline];
+
+		if (computeTexture) {
+			[computeEncoder setTexture:computeTexture atIndex:0];
+		}
+
+		// Threadgroup size of 16x16x1 — compute shaders should use matching local size
+		MTLSize threadgroupSize = MTLSizeMake(16, 16, 1);
+		MTLSize threadgroupCount = MTLSizeMake(groupX, groupY, groupZ);
+
+		[computeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
+		[computeEncoder endEncoding];
+
+		[commandBuffer commit];
+		[commandBuffer waitUntilCompleted];
+	}
+
+	void MetalRendererAPI::ComputeBarrier() {
+		// Metal synchronization is implicit after waitUntilCompleted in DispatchCompute.
+		// No additional barrier needed.
+	}
+
+	void MetalRendererAPI::BlitToScreen(void* nativeTexture, uint32_t width, uint32_t height) {
+		MetalContext* ctx = MetalContext::Get();
+		if (!ctx || !ctx->GetCurrentEncoder()) return;
+
+		void* blitPipeline = ctx->GetBlitPipelineState();
+		if (!blitPipeline) {
+			LR_CORE_ERROR("Failed to get blit pipeline state!");
+			return;
+		}
+
+		id<MTLRenderCommandEncoder> encoder = (__bridge id<MTLRenderCommandEncoder>)ctx->GetCurrentEncoder();
+		id<MTLRenderPipelineState> pipelineState = (__bridge id<MTLRenderPipelineState>)blitPipeline;
+		id<MTLTexture> texture = (__bridge id<MTLTexture>)nativeTexture;
+
+		[encoder setRenderPipelineState:pipelineState];
+		[encoder setFragmentTexture:texture atIndex:0];
+
+		// Draw full-screen triangle (3 vertices, no vertex buffer)
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+	}
+
 }
 
 #endif // LORE_PLATFORM_MAC

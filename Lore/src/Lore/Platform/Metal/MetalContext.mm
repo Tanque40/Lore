@@ -25,6 +25,10 @@ namespace Lore {
 			s_Instance = nullptr;
 
 		// Release retained Metal objects (those stored via __bridge_retained)
+		if (m_BlitPipelineState) {
+			CFRelease(m_BlitPipelineState);
+			m_BlitPipelineState = nullptr;
+		}
 		if (m_CommandQueue) {
 			CFRelease(m_CommandQueue);
 			m_CommandQueue = nullptr;
@@ -35,10 +39,13 @@ namespace Lore {
 		}
 		// m_Layer, m_CurrentEncoder, m_CurrentCommandBuffer, m_CurrentDrawable
 		// are weak references (__bridge void*), no need to release
+		// m_CurrentComputePipeline, m_CurrentComputeTexture are also weak references
 		m_CurrentEncoder = nullptr;
 		m_CurrentCommandBuffer = nullptr;
 		m_CurrentDrawable = nullptr;
 		m_CurrentPassDescriptor = nullptr;
+		m_CurrentComputePipeline = nullptr;
+		m_CurrentComputeTexture = nullptr;
 		m_Layer = nullptr;
 	}
 
@@ -198,6 +205,70 @@ namespace Lore {
 		m_CurrentCommandBuffer = nullptr;
 		m_CurrentDrawable = nullptr;
 		m_CurrentPassDescriptor = nullptr;
+	}
+
+	void* MetalContext::GetBlitPipelineState() {
+		if (m_BlitPipelineState) return m_BlitPipelineState;
+
+		id<MTLDevice> device = (__bridge id<MTLDevice>)m_Device;
+
+		// Inline MSL blit shader: full-screen triangle using vertex_id
+		NSString* blitShaderSource = @R"(
+#include <metal_stdlib>
+using namespace metal;
+
+struct BlitOut {
+    float4 position [[position]];
+    float2 texCoord;
+};
+
+vertex BlitOut blit_vertex(uint vid [[vertex_id]]) {
+    BlitOut out;
+    out.texCoord = float2((vid << 1) & 2, vid & 2);
+    out.position = float4(out.texCoord * 2.0 - 1.0, 0.0, 1.0);
+    return out;
+}
+
+fragment float4 blit_fragment(BlitOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
+    constexpr sampler s(filter::nearest);
+    return tex.sample(s, in.texCoord);
+}
+)";
+
+		NSError* error = nil;
+		MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+		id<MTLLibrary> library = [device newLibraryWithSource:blitShaderSource options:options error:&error];
+
+		if (error) {
+			LR_CORE_ERROR("Failed to compile Metal blit shader: {0}",
+				std::string([[error localizedDescription] UTF8String]));
+			return nullptr;
+		}
+
+		id<MTLFunction> vertexFunction = [library newFunctionWithName:@"blit_vertex"];
+		id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"blit_fragment"];
+
+		LR_CORE_ASSERT(vertexFunction, "Failed to find blit_vertex in blit shader!");
+		LR_CORE_ASSERT(fragmentFunction, "Failed to find blit_fragment in blit shader!");
+
+		// Create pipeline without vertex descriptor (vertex_id only)
+		MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
+		desc.vertexFunction = vertexFunction;
+		desc.fragmentFunction = fragmentFunction;
+		desc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+		error = nil;
+		id<MTLRenderPipelineState> pipelineState = [device newRenderPipelineStateWithDescriptor:desc error:&error];
+
+		if (error) {
+			LR_CORE_ERROR("Failed to create Metal blit pipeline state: {0}",
+				std::string([[error localizedDescription] UTF8String]));
+			return nullptr;
+		}
+
+		m_BlitPipelineState = (__bridge_retained void*)pipelineState;
+		LR_CORE_INFO("Metal blit pipeline created successfully.");
+		return m_BlitPipelineState;
 	}
 
 }

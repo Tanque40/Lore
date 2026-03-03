@@ -15,6 +15,12 @@ namespace Lore {
 
 		virtual void DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray) override;
 
+		// Compute pipeline
+		virtual void DispatchCompute(uint32_t groupX, uint32_t groupY, uint32_t groupZ) override;
+		virtual void ComputeBarrier() override;
+
+		// Blit
+		virtual void BlitToScreen(void* nativeTexture, uint32_t width, uint32_t height) override;
 	};
 
 }

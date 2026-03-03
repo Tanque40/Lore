@@ -24,6 +24,9 @@
 #include "Lore/Renderer/VertexArray.h"
 #include "Lore/Renderer/Framebuffer.h"
 
+#include "Lore/Renderer/ComputeTexture.h"
+#include "Lore/Renderer/ComputeShader.h"
+
 #include "Lore/Renderer/OrthographicCamera.h"
 // ! ******** !
 

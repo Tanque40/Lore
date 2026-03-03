@@ -21,4 +21,8 @@ namespace Lore {
 
 	void Renderer::EndScene() {
 	}
+
+	void Renderer::BlitToScreen(const std::shared_ptr<ComputeTexture>& texture) {
+		RenderCommand::BlitToScreen(texture->GetNativeHandle(), texture->GetWidth(), texture->GetHeight());
+	}
 }

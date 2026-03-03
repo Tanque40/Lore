@@ -24,6 +24,11 @@ namespace Lore {
 		void* m_CurrentPassDescriptor = nullptr; // MTLRenderPassDescriptor*
 		void* m_OffscreenTexture = nullptr;       // id<MTLTexture> for offscreen rendering
 
+		// Compute state
+		void* m_CurrentComputePipeline = nullptr;  // id<MTLComputePipelineState>
+		void* m_CurrentComputeTexture = nullptr;   // id<MTLTexture> (weak ref, owned by ComputeTexture)
+		void* m_BlitPipelineState = nullptr;       // id<MTLRenderPipelineState> for blit
+
 		glm::vec4 m_ClearColor{ 0.1f, 0.1f, 0.1f, 1.0f };
 
 	public:
@@ -51,6 +56,15 @@ namespace Lore {
 		void SetOffscreenTexture(void* texture) { m_OffscreenTexture = texture; }
 		void ClearOffscreenTexture() { m_OffscreenTexture = nullptr; }
 		void EndCurrentPass();
+
+		// Compute state management
+		void SetCurrentComputePipeline(void* pipeline) { m_CurrentComputePipeline = pipeline; }
+		void SetCurrentComputeTexture(void* texture) { m_CurrentComputeTexture = texture; }
+		void* GetCurrentComputePipeline() const { return m_CurrentComputePipeline; }
+		void* GetCurrentComputeTexture() const { return m_CurrentComputeTexture; }
+
+		// Lazily-initialized blit pipeline for full-screen quad rendering
+		void* GetBlitPipelineState();
 
 		static MetalContext* Get() { return s_Instance; }
 	};
