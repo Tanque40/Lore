@@ -7,7 +7,7 @@ namespace Maze {
 
 	class Cell {
 	private:
-		unsigned int m_Row, m_Column;
+		uint32_t m_Row, m_Column;
 		Cell* m_North = nullptr;
 		Cell* m_South = nullptr;
 		Cell* m_East = nullptr;
@@ -15,7 +15,7 @@ namespace Maze {
 		std::map<Cell*, bool> m_Links;
 
 	public:
-		Cell(unsigned int r, unsigned int c) : m_Row(r), m_Column(c) {}
+		Cell(uint32_t r, uint32_t c) : m_Row(r), m_Column(c) {}
 
 		inline void SetNorth(Cell* cell) { m_North = cell; }
 		inline void SetSouth(Cell* cell) { m_South = cell; }
@@ -25,6 +25,9 @@ namespace Maze {
 		inline Cell* GetSouth() { return m_South; }
 		inline Cell* GetEast() { return m_East; }
 		inline Cell* GetWest() { return m_West; }
+
+		inline uint32_t GetRow() { return m_Row; }
+		inline uint32_t GetColumn() { return m_Column; }
 
 		void Link(Cell* cell, bool bidirectional = true);
 		void Unlink(Cell* cell, bool bidirectional = true);

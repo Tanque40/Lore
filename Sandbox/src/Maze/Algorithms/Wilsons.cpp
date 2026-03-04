@@ -8,6 +8,9 @@ namespace Maze {
 			unvisited.push_back(cell);
 			});
 
+		Cell* first = unvisited[std::rand() % unvisited.size()];
+		unvisited.erase(std::remove(unvisited.begin(), unvisited.end(), first), unvisited.end());
+
 		while (!unvisited.empty()) {
 			Cell* cell = unvisited[std::rand() % unvisited.size()];
 			std::vector<Cell*> path{ cell };

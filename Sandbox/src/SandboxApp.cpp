@@ -7,6 +7,8 @@
 #include "Maze/Algorithms/Wilsons.h"
 #include "Maze/Algorithms/Sidewinder.h"
 
+#include "Maze/Base/Grid3D.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 class ExampleLayer : public Lore::Layer {
@@ -19,6 +21,10 @@ private:
 	Maze::Grid m_Grid;
 	std::string m_GridString = "";
 
+	uint32_t m_Grid3DDimension = 5;
+	Maze::Grid3D m_Grid3D;
+	std::string m_Grid3DString = "";
+
 	// Compute-First pipeline resources
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;
@@ -27,7 +33,7 @@ private:
 	uint32_t m_Height = 600;
 
 public:
-	ExampleLayer() : Layer("Example"), m_Grid(m_GridDimension, m_GridDimension) {
+	ExampleLayer() : Layer("Example"), m_Grid(m_GridDimension, m_GridDimension), m_Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension) {
 		// Initialize compute shader and texture
 #ifdef LORE_PLATFORM_MAC
 		m_ComputeShader.reset(Lore::ComputeShader::Create("Sandbox/src/Shaders/Metal/Main.compute.metal"));
@@ -85,40 +91,65 @@ public:
 
 		if (!ImGui::CollapsingHeader("Maze")) {
 			ImGui::BeginChild("Maze Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
-			ImGui::SeparatorText("Maze Generation");
-			ImGui::InputInt("Grid Dimension", (int*)&m_GridDimension);
-
-			ImGui::BeginTable("split1", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders);
-
-			ImGui::TableNextColumn();
-			if (ImGui::Button("Binary Tree")) {
-				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-				Maze::Grid grid = Maze::BinaryTree::On(m_Grid);
-				m_GridString = grid.ToString();
-			}
-
-			ImGui::TableNextColumn();
-			if (ImGui::Button("Wilson's")) {
-				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-				Maze::Grid grid = Maze::Wilsons::On(m_Grid);
-				m_GridString = grid.ToString();
-			}
-
-			ImGui::TableNextColumn();
-			if (ImGui::Button("Sidewinder")) {
-				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-				Maze::Grid grid = Maze::Sidewinder::On(m_Grid);
-				m_GridString = grid.ToString();
-			}
-
-			ImGui::EndTable();
-
 			{
-				int maxHeightInLines = 20;
-				ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
-				ImGui::BeginChild("Show Maze", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
-				ImGui::Text("%s", m_GridString.c_str());
-				ImGui::EndChild();
+				ImGui::SeparatorText("Maze Generation");
+				ImGui::InputInt("Grid Dimension", (int*)&m_GridDimension);
+
+				if (ImGui::BeginTable("Maze2DButtonsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
+
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Binary Tree")) {
+						m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+						Maze::Grid grid = Maze::BinaryTree::On(m_Grid);
+						m_GridString = grid.ToString();
+					}
+
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Wilson's")) {
+						m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+						Maze::Grid grid = Maze::Wilsons::On(m_Grid);
+						m_GridString = grid.ToString();
+					}
+
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Sidewinder")) {
+						m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+						Maze::Grid grid = Maze::Sidewinder::On(m_Grid);
+						m_GridString = grid.ToString();
+					}
+
+					ImGui::EndTable();
+				}
+
+				{
+					int maxHeightInLines = 20;
+					ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
+					ImGui::BeginChild("Show Maze", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
+					ImGui::Text("%s", m_GridString.c_str());
+					ImGui::EndChild();
+				}
+
+				ImGui::InputInt("Grid 3D size", (int*)&m_Grid3DDimension);
+
+				if (ImGui::BeginTable("Maze3DButtonsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
+
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Binary Tree 3D")) {
+						m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
+						Maze::BinaryTree::On(&m_Grid3D);
+						m_Grid3DString = m_Grid3D.ToString();
+					}
+
+					ImGui::EndTable();
+				}
+
+				{
+					int maxHeightInLines = 20;
+					ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
+					ImGui::BeginChild("Show Maze 3D", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
+					ImGui::Text("%s", m_Grid3DString.c_str());
+					ImGui::EndChild();
+				}
 			}
 
 			ImGui::EndChild();
