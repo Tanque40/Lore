@@ -1,8 +1,6 @@
-#include "Maze/Algorithms/Sidewinder.h"
+#include "sndbxpch.h"
 
-#include <vector>
-#include <algorithm>
-#include <functional>
+#include "Maze/Algorithms/Sidewinder.h"
 
 namespace Maze {
 

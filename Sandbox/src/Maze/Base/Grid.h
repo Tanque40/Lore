@@ -2,10 +2,6 @@
 
 #include "Maze/Base/Cell.h"
 
-#include <vector>
-#include <string>
-#include <functional>
-
 namespace Maze {
 
 	class Grid {

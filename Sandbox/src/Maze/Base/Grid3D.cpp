@@ -1,3 +1,5 @@
+#include "sndbxpch.h"
+
 #include "Maze/Base/Grid3D.h"
 
 namespace Maze {

@@ -1,3 +1,5 @@
+#include "sndbxpch.h"
+
 #include "Maze/Base/Cell.h"
 
 namespace Maze {

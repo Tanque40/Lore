@@ -32,5 +32,4 @@
 
 // ! Entry Point !
 // ? Must be include direct on the first line of the application's main file (Sandbox/src/SandboxApp.cpp) to avoid linker errors due to multiple definitions of the entry point function.
-// #include "Lore/EntryP
 // ! *********** !

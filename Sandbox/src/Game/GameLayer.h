@@ -2,8 +2,6 @@
 
 #include <Lore.h>
 
-#include <string>
-
 #include "Maze/Base/Grid.h"
 #include "Maze/Base/Grid3D.h"
 
