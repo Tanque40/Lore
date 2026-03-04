@@ -4,6 +4,8 @@
 #include <string>
 
 #include "Maze/Algorithms/BinaryTree.h"
+#include "Maze/Algorithms/Wilsons.h"
+#include "Maze/Algorithms/Sidewinder.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -82,8 +84,44 @@ public:
 		}
 
 		if (!ImGui::CollapsingHeader("Maze")) {
+			ImGui::BeginChild("Maze Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+			ImGui::SeparatorText("Maze Generation");
+			ImGui::InputInt("Grid Dimension", (int*)&m_GridDimension);
 
-			ImGui::Text("%s", m_GridString.c_str());
+			ImGui::BeginTable("split1", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders);
+
+			ImGui::TableNextColumn();
+			if (ImGui::Button("Binary Tree")) {
+				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+				Maze::Grid grid = Maze::BinaryTree::On(m_Grid);
+				m_GridString = grid.ToString();
+			}
+
+			ImGui::TableNextColumn();
+			if (ImGui::Button("Wilson's")) {
+				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+				Maze::Grid grid = Maze::Wilsons::On(m_Grid);
+				m_GridString = grid.ToString();
+			}
+
+			ImGui::TableNextColumn();
+			if (ImGui::Button("Sidewinder")) {
+				m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
+				Maze::Grid grid = Maze::Sidewinder::On(m_Grid);
+				m_GridString = grid.ToString();
+			}
+
+			ImGui::EndTable();
+
+			{
+				int maxHeightInLines = 20;
+				ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
+				ImGui::BeginChild("Show Maze", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
+				ImGui::Text("%s", m_GridString.c_str());
+				ImGui::EndChild();
+			}
+
+			ImGui::EndChild();
 		}
 
 		ImGui::End();
