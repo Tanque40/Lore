@@ -34,6 +34,9 @@ namespace Maze {
 			return nullptr;
 		}
 
+		std::vector<std::vector<std::vector<uint32_t>>> ToIntMatrix3D();
+		static std::string IntMatrix3DToString(const std::vector<std::vector<std::vector<uint32_t>>>& matrix3D);
+
 		std::string ToString();
 	};
 

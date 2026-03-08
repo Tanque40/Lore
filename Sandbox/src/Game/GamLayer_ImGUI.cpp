@@ -68,16 +68,26 @@ void GameLayer::OnImGuiRender() {
 					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
 					Maze::BinaryTree::On(&m_Grid3D);
 					m_Grid3DString = m_Grid3D.ToString();
+					m_Grid3DIntMatrix = m_Grid3D.ToIntMatrix3D();
+					m_Grid3DIntMatrixString = Maze::Grid3D::IntMatrix3DToString(m_Grid3DIntMatrix);
 				}
 
 				ImGui::EndTable();
 			}
 
 			{
-				int maxHeightInLines = 20;
+				int maxHeightInLines = 15;
 				ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
 				ImGui::BeginChild("Show Maze 3D", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
 				ImGui::Text("%s", m_Grid3DString.c_str());
+				ImGui::EndChild();
+			}
+
+			{
+				int maxHeightInLines = 15;
+				ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1), ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * maxHeightInLines));
+				ImGui::BeginChild("Show Maze 3D Int Matrix", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_HorizontalScrollbar);
+				ImGui::Text("%s", m_Grid3DIntMatrixString.c_str());
 				ImGui::EndChild();
 			}
 		}

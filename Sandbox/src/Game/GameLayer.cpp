@@ -11,12 +11,30 @@ void GameLayer::OnAttach() {
 	m_Width = Lore::Application::Get().GetWindow().GetWidth();
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
+
+	m_VoxelGrid.SetVoxel(32, 32, 32, 0xFF0000FF);
+	m_VoxelGrid.SetVoxel(33, 32, 32, 0x00FF00FF);
+	SVO::SVOBuilder builder;
+	m_SVOData = builder.Build(m_VoxelGrid);
+
+	uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
+	// Lo enlazamos al slot 0 (binding=0)
+	svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
+
+	// 3. Subes los datos a la GPU
+	svoBuffer->SetData(m_SVOData.data(), bufferSize);
+
+	// 4. En el ciclo de renderizado (OnUpdate):
+
+	LR_INFO("SVO built with {} nodes", m_SVOData.size());
 }
 
 void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	// Update FPS and frame time
 	m_FrameTime = ts.GetSeconds();
 	m_FPS = 1.0f / m_FrameTime;
+
+	svoBuffer->Bind(0);
 
 	// 1. Bind compute resources
 	m_ComputeShader->Bind();

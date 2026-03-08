@@ -5,6 +5,9 @@
 #include "Maze/Base/Grid.h"
 #include "Maze/Base/Grid3D.h"
 
+#include "SVO/VoxelGrid.h"
+#include "SVO/SVO.h"
+
 class GameLayer : public Lore::Layer {
 private:
 	// For calculating FPS
@@ -18,6 +21,12 @@ private:
 	uint32_t m_Grid3DDimension = 5;
 	Maze::Grid3D m_Grid3D;
 	std::string m_Grid3DString = "";
+	std::vector<std::vector<std::vector<uint32_t>>> m_Grid3DIntMatrix;
+	std::string m_Grid3DIntMatrixString = "";
+
+	SVO::VoxelGrid m_VoxelGrid{ 64 };
+	std::vector<SVO::SVONode> m_SVOData;
+	std::shared_ptr<Lore::StorageBuffer> svoBuffer;
 
 	// Compute-First pipeline resources
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
