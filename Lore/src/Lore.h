@@ -28,6 +28,7 @@
 #include "Lore/Renderer/ComputeShader.h"
 
 #include "Lore/Renderer/OrthographicCamera.h"
+#include "Lore/Renderer/PerspectiveCamera.h"
 // ! ******** !
 
 // ! Entry Point !

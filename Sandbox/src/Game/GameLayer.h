@@ -2,6 +2,8 @@
 
 #include <Lore.h>
 
+#include <Lore/Renderer/PerspectiveCamera.h>
+
 #include "Maze/Base/Grid.h"
 #include "Maze/Base/Grid3D.h"
 
@@ -34,6 +36,8 @@ private:
 
 	uint32_t m_Width = 800;
 	uint32_t m_Height = 600;
+
+	PerspectiveCamera m_Camera;
 
 public:
 	GameLayer() : Layer("Game"), m_Grid(m_GridDimension, m_GridDimension), m_Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension) {

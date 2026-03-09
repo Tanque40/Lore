@@ -1,3 +1,5 @@
+#include "sndbxpch.h"
+
 #include "Maze/Algorithms/Wilsons.h"
 
 namespace Maze {

@@ -1,5 +1,5 @@
 project "Sandbox"
-	kind "WindowedApp"
+	kind "ConsoleApp"
 	language "C++"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")

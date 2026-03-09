@@ -2,6 +2,8 @@
 
 #include "Lore/Platform/OpenGL/OpenGLComputeShader.h"
 
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Lore {
 
     OpenGLComputeShader::OpenGLComputeShader(const std::string& computePath) {
@@ -69,5 +71,35 @@ namespace Lore {
     void OpenGLComputeShader::Unbind() {
         glUseProgram(0);
     }
+
+	void OpenGLComputeShader::SetUniform1f(const std::string& name, float value) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniform1f(location, value);
+	}
+
+	void OpenGLComputeShader::SetUniform2f(const std::string& name, const glm::vec2& vector) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniform2fv(location, 1, glm::value_ptr(vector));
+	}
+
+	void OpenGLComputeShader::SetUniform3f(const std::string& name, const glm::vec3& vector) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniform3fv(location, 1, glm::value_ptr(vector));
+	}
+
+	void OpenGLComputeShader::SetUniform4f(const std::string& name, const glm::vec4& vector) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniform4fv(location, 1, glm::value_ptr(vector));
+	}
+
+	void OpenGLComputeShader::SetUniformMat3f(const std::string& name, const glm::mat3& matrix) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+	}
+
+	void OpenGLComputeShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
+		GLint location = glGetUniformLocation(m_ProgramID, name.c_str());
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+	}
 
 }

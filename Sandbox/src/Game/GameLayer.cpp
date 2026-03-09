@@ -12,6 +12,8 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
+	///m_Camera.SetPosition({ 0.0f, 0.0f, -35.0f });
+
 	m_VoxelGrid.SetVoxel(32, 32, 32, 0xFF0000FF);
 	m_VoxelGrid.SetVoxel(33, 32, 32, 0x00FF00FF);
 	SVO::SVOBuilder builder;
@@ -33,6 +35,12 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	// Update FPS and frame time
 	m_FrameTime = ts.GetSeconds();
 	m_FPS = 1.0f / m_FrameTime;
+
+	m_ComputeShader->SetUniform3f("u_CameraPos", m_Camera.GetPosition());
+	m_ComputeShader->SetUniform3f("u_CameraDir", m_Camera.GetDirection());
+	m_ComputeShader->SetUniform3f("u_CameraUp", m_Camera.GetUp());
+	m_ComputeShader->SetUniform3f("u_CameraRight", m_Camera.GetRight());
+	m_ComputeShader->SetUniform1f("u_Fov", m_Camera.GetFov());
 
 	svoBuffer->Bind(0);
 

@@ -1,3 +1,5 @@
+#include "sndbxpch.h"
+
 #include <Lore.h>
 #include <Lore/EntryPoint.h>
 

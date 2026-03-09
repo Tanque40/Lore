@@ -55,8 +55,8 @@ namespace Lore {
 			return nullptr;
 #ifdef LORE_PLATFORM_WINDOWS
 		case RendererAPI::API::OpenGL:
-			//return new OpenGLStorageBuffer(size, binding); --- IGNORE ---
-			LR_CORE_ASSERT(false, "OpenGL StorageBuffer is not implemented yet!");
+			return new OpenGLStorageBuffer(size, binding);
+			//LR_CORE_ASSERT(false, "OpenGL StorageBuffer is not implemented yet!");
 			return nullptr;
 #endif
 #ifdef LORE_PLATFORM_MAC

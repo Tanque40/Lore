@@ -1,11 +1,10 @@
 #pragma once
 
-#include <string>
-#include <memory>
+#include "Lore/Renderer/Shader.h"	
 
 namespace Lore {
 
-	class ComputeShader {
+	class ComputeShader : public Shader{
 	public:
 		virtual ~ComputeShader() = default;
 

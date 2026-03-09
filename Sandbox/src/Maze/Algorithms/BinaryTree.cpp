@@ -1,3 +1,5 @@
+#include "sndbxpch.h"
+
 #include "Maze/Algorithms/BinaryTree.h"
 
 #include "Maze/Base/Cell.h"
