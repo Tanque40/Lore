@@ -13,11 +13,16 @@ namespace Lore {
 
 	public:
 
+		// Padded to match Metal float3 alignment (16 bytes per float3)
 		struct Uniforms {
 			glm::vec3 cameraPos;
+			float _pad0 = 0;
 			glm::vec3 cameraDir;
+			float _pad1 = 0;
 			glm::vec3 cameraUp;
+			float _pad2 = 0;
 			glm::vec3 cameraRight;
+			float _pad3 = 0;
 			float fov;
 		};
 

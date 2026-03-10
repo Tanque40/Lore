@@ -87,14 +87,11 @@ MetalStorageBuffer::MetalStorageBuffer(uint32_t size, uint32_t binding) : m_Bind
 	}
 
 	void MetalStorageBuffer::Bind(uint32_t slot) const {
-		if (!MetalContext::Get() || !MetalContext::Get()->GetCurrentEncoder())
+		if (!MetalContext::Get())
 			return;
 
-		id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)m_Buffer;
-
-		// Dependiendo de si estás en Compute o Render, esto cambia.
-		id<MTLComputeCommandEncoder> encoder = (__bridge id<MTLComputeCommandEncoder>)MetalContext::Get()->GetCurrentEncoder();
-		[encoder setBuffer:buffer offset:0 atIndex:slot];
+		// Stage the buffer in MetalContext; it will be bound to the compute encoder in DispatchCompute
+		MetalContext::Get()->SetComputeBuffer(m_Buffer, slot);
 	}
 
 	void MetalStorageBuffer::Unbind() const {

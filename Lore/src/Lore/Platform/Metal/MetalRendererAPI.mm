@@ -98,6 +98,14 @@ namespace Lore {
 			[computeEncoder setTexture:computeTexture atIndex:0];
 		}
 
+		// Bind staged compute buffers (e.g. SVO storage buffer)
+		for (int i = 0; i < MetalContext::MAX_COMPUTE_BUFFERS; ++i) {
+			if (ctx->IsComputeBufferBound(i)) {
+				id<MTLBuffer> buf = (__bridge id<MTLBuffer>)ctx->GetComputeBuffer(i);
+				[computeEncoder setBuffer:buf offset:0 atIndex:i];
+			}
+		}
+
 		const void* uniformData = ctx->GetComputeUniformData();
 		if (uniformData) {
 			[computeEncoder setBytes:uniformData length:ctx->GetComputeUniformSize() atIndex:1];

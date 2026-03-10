@@ -86,9 +86,9 @@ namespace Lore {
 	}
 
 	void MetalComputeShader::SetUniform3f(const std::string& name, const glm::vec3& vector) {
-		if (name == "u_CameraPosition") {
+		if (name == "u_CameraPos") {
 			m_Uniforms.cameraPos = vector;
-		} else if (name == "u_CameraDirection") {
+		} else if (name == "u_CameraDir") {
 			m_Uniforms.cameraDir = vector;
 		} else if (name == "u_CameraUp") {
 			m_Uniforms.cameraUp = vector;

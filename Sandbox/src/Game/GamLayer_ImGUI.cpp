@@ -95,5 +95,13 @@ void GameLayer::OnImGuiRender() {
 		ImGui::EndChild();
 	}
 
+	if (!ImGui::CollapsingHeader("Camera")) {
+		ImGui::BeginChild("Camera Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+		ImGui::SliderFloat3("Position", (float*)&m_Camera.GetPosition(), -100.0f, 100.0f, "%.3f");
+
+		ImGui::EndChild();
+
+	}
+
 	ImGui::End();
 }

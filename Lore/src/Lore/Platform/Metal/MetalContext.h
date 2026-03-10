@@ -31,9 +31,14 @@ namespace Lore {
 		const void* m_ComputeUniformData = nullptr;
 		size_t m_ComputeUniformSize = 0;
 
+		// Compute buffer bindings (staged before DispatchCompute)
+		void* m_ComputeBuffers[8] = {};
+		bool m_ComputeBufferBound[8] = {};
+
 		glm::vec4 m_ClearColor{ 0.1f, 0.1f, 0.1f, 1.0f };
 
 	public:
+		static constexpr int MAX_COMPUTE_BUFFERS = 8;
 		MetalContext(GLFWwindow* windowHandle);
 		virtual ~MetalContext();
 
@@ -67,6 +72,14 @@ namespace Lore {
 		void SetComputeUniforms(const void* data, size_t size) { m_ComputeUniformData = data; m_ComputeUniformSize = size; }
 		const void* GetComputeUniformData() const { return m_ComputeUniformData; }
 		size_t GetComputeUniformSize() const { return m_ComputeUniformSize; }
+
+		// Compute buffer staging
+		void SetComputeBuffer(void* buffer, uint32_t slot) {
+			if (slot < MAX_COMPUTE_BUFFERS) { m_ComputeBuffers[slot] = buffer; m_ComputeBufferBound[slot] = true; }
+		}
+		void* GetComputeBuffer(uint32_t slot) const { return slot < MAX_COMPUTE_BUFFERS ? m_ComputeBuffers[slot] : nullptr; }
+		bool IsComputeBufferBound(uint32_t slot) const { return slot < MAX_COMPUTE_BUFFERS && m_ComputeBufferBound[slot]; }
+		void ClearComputeBuffers() { for (int i = 0; i < MAX_COMPUTE_BUFFERS; ++i) { m_ComputeBuffers[i] = nullptr; m_ComputeBufferBound[i] = false; } }
 
 		// Lazily-initialized blit pipeline for full-screen quad rendering
 		void* GetBlitPipelineState();

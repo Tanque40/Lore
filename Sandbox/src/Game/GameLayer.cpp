@@ -12,10 +12,18 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
-	//m_Camera.SetPosition({ 0.0f, 0.0f, -35.0f });
+	glm::vec3 cameraPosition = { 20.0f, 36.0f, 20.0f };
+	m_Camera.SetPosition(cameraPosition);
+	m_Camera.SetDirection(glm::normalize(glm::vec3(32.0f, 32.0f, 32.0f) - cameraPosition));
 
-	m_VoxelGrid.SetVoxel(32, 32, 32, 0xFF0000FF);
-	m_VoxelGrid.SetVoxel(33, 32, 32, 0x00FF00FF);
+	// Create a visible 8x8x8 cube of voxels centered around (32,32,32)
+	for (uint32_t x = 28; x < 36; x++)
+		for (uint32_t y = 28; y < 36; y++)
+			for (uint32_t z = 28; z < 36; z++)
+				m_VoxelGrid.SetVoxel(x, y, z, 0xFFFF00FF);
+
+	m_VoxelGrid.SetVoxel(38, 38, 38, 0xFF0000FF); // Red center voxel
+
 	SVO::SVOBuilder builder;
 	m_SVOData = builder.Build(m_VoxelGrid);
 
@@ -28,7 +36,7 @@ void GameLayer::OnAttach() {
 
 	// 4. En el ciclo de renderizado (OnUpdate):
 
-	LR_INFO("SVO built with {} nodes", m_SVOData.size());
+	LR_TRACE("SVO built with {} nodes", m_SVOData.size());
 }
 
 void GameLayer::OnUpdate(Lore::TimeStep ts) {
