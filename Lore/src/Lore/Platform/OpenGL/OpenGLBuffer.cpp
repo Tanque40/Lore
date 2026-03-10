@@ -1,5 +1,7 @@
 #include "lrpch.h"
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Platform/OpenGL/OpenGLBuffer.h"
 
 #include <glad/glad.h>
@@ -70,3 +72,5 @@ namespace Lore {
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
 	}
 }
+
+#endif

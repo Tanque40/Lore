@@ -1,5 +1,7 @@
 #include "lrpch.h"
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "OpenGLContext.h"
 
 #include <GLFW/glfw3.h>
@@ -32,3 +34,5 @@ namespace Lore {
 	}
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

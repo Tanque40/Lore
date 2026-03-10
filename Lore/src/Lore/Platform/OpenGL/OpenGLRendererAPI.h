@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/RendererAPI.h"
 #include <glm/glm.hpp>
 
@@ -30,3 +32,5 @@ namespace Lore {
 	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

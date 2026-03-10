@@ -1,5 +1,7 @@
 #include "lrpch.h"
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Platform/OpenGL/OpenGLRendererAPI.h"
 
 #include <glad/glad.h>
@@ -150,3 +152,5 @@ void main() {
 	}
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

@@ -13,7 +13,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include "Lore/Platform/OpenGL/OpenGLContext.h"
 #include "Lore/Platform/Metal/MetalContext.h"
 #include "Lore/Renderer/RendererAPI.h"
 
@@ -68,12 +67,8 @@ namespace Lore {
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 
-		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {
-			m_Context = new OpenGLContext(m_Window);
-		}
-		else if (RendererAPI::GetAPI() == RendererAPI::API::Metal) {
-			m_Context = new MetalContext(m_Window);
-		}
+		m_Context = new MetalContext(m_Window);
+
 		m_Context->Init();
 
 		if (RendererAPI::GetAPI() == RendererAPI::API::OpenGL) {

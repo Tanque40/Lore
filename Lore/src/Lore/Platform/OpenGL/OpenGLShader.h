@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/Shader.h"
 
 #include <glad/glad.h>
@@ -32,3 +34,5 @@ namespace Lore {
 	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

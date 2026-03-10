@@ -1,18 +1,20 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/ComputeShader.h"
 
 #include <glad/glad.h>
 
 namespace Lore {
 
-    class OpenGLComputeShader : public ComputeShader {
-    public:
-        OpenGLComputeShader(const std::string& computePath);
-        virtual ~OpenGLComputeShader();
+	class OpenGLComputeShader : public ComputeShader {
+	public:
+		OpenGLComputeShader(const std::string& computePath);
+		virtual ~OpenGLComputeShader();
 
-        virtual void Bind() override;
-        virtual void Unbind() override;
+		virtual void Bind() override;
+		virtual void Unbind() override;
 
 		// ? Floats
 		virtual void SetUniform1f(const std::string& name, float value) override;
@@ -24,8 +26,10 @@ namespace Lore {
 		virtual void SetUniformMat3f(const std::string& name, const glm::mat3& matrix) override;
 		virtual void SetUniformMat4f(const std::string& name, const glm::mat4& matrix) override;
 
-    private:
-        GLuint m_ProgramID = 0;
-    };
+	private:
+		GLuint m_ProgramID = 0;
+	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

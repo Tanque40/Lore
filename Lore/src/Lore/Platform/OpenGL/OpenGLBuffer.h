@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/Buffer.h"
 
 namespace Lore {
@@ -48,3 +50,5 @@ namespace Lore {
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
 	};
 }
+
+#endif

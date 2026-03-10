@@ -28,6 +28,8 @@ namespace Lore {
 		void* m_CurrentComputePipeline = nullptr;  // id<MTLComputePipelineState>
 		void* m_CurrentComputeTexture = nullptr;   // id<MTLTexture> (weak ref, owned by ComputeTexture)
 		void* m_BlitPipelineState = nullptr;       // id<MTLRenderPipelineState> for blit
+		const void* m_ComputeUniformData = nullptr;
+		size_t m_ComputeUniformSize = 0;
 
 		glm::vec4 m_ClearColor{ 0.1f, 0.1f, 0.1f, 1.0f };
 
@@ -62,6 +64,9 @@ namespace Lore {
 		void SetCurrentComputeTexture(void* texture) { m_CurrentComputeTexture = texture; }
 		void* GetCurrentComputePipeline() const { return m_CurrentComputePipeline; }
 		void* GetCurrentComputeTexture() const { return m_CurrentComputeTexture; }
+		void SetComputeUniforms(const void* data, size_t size) { m_ComputeUniformData = data; m_ComputeUniformSize = size; }
+		const void* GetComputeUniformData() const { return m_ComputeUniformData; }
+		size_t GetComputeUniformSize() const { return m_ComputeUniformSize; }
 
 		// Lazily-initialized blit pipeline for full-screen quad rendering
 		void* GetBlitPipelineState();

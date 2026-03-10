@@ -1,5 +1,7 @@
 #include "lrpch.h"
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Platform/OpenGL/OpenGLComputeTexture.h"
 
 namespace Lore {
@@ -54,3 +56,5 @@ namespace Lore {
 	}
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

@@ -1,5 +1,7 @@
 #include "lrpch.h"
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Platform/OpenGL/OpenGLShader.h"
 
 
@@ -188,3 +190,5 @@ namespace Lore {
 	}
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

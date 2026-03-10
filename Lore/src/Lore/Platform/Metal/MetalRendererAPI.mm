@@ -98,6 +98,11 @@ namespace Lore {
 			[computeEncoder setTexture:computeTexture atIndex:0];
 		}
 
+		const void* uniformData = ctx->GetComputeUniformData();
+		if (uniformData) {
+			[computeEncoder setBytes:uniformData length:ctx->GetComputeUniformSize() atIndex:1];
+		}
+
 		// Threadgroup size of 16x16x1 — compute shaders should use matching local size
 		MTLSize threadgroupSize = MTLSizeMake(16, 16, 1);
 		MTLSize threadgroupCount = MTLSizeMake(groupX, groupY, groupZ);

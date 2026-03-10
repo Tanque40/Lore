@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/GraphicsContext.h"
 
 struct GLFWwindow;
@@ -18,3 +20,5 @@ namespace Lore {
 	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

@@ -12,7 +12,7 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
-	///m_Camera.SetPosition({ 0.0f, 0.0f, -35.0f });
+	//m_Camera.SetPosition({ 0.0f, 0.0f, -35.0f });
 
 	m_VoxelGrid.SetVoxel(32, 32, 32, 0xFF0000FF);
 	m_VoxelGrid.SetVoxel(33, 32, 32, 0x00FF00FF);

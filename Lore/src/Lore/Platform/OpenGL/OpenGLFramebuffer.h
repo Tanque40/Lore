@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/Framebuffer.h"
 
 namespace Lore {
@@ -28,3 +30,5 @@ namespace Lore {
 	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef LORE_PLATFORM_WINDOWS
+
 #include "Lore/Renderer/VertexArray.h"
 
 namespace Lore {
@@ -25,3 +27,5 @@ namespace Lore {
 	};
 
 }
+
+#endif // LORE_PLATFORM_WINDOWS

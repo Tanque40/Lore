@@ -60,10 +60,11 @@ namespace Lore {
 	}
 
 	void MetalComputeShader::Bind() {
-		// Store the compute pipeline in MetalContext so DispatchCompute can access it
+		// Store the compute pipeline and uniforms in MetalContext so DispatchCompute can access them
 		MetalContext* context = MetalContext::Get();
 		if (context) {
 			context->SetCurrentComputePipeline(m_ComputePipelineState);
+			context->SetComputeUniforms(&m_Uniforms, sizeof(Uniforms));
 		}
 	}
 
@@ -72,6 +73,41 @@ namespace Lore {
 		if (context) {
 			context->SetCurrentComputePipeline(nullptr);
 		}
+	}
+
+	void MetalComputeShader::SetUniform1f(const std::string& name, float value) {
+		if (name == "u_Fov") {
+			m_Uniforms.fov = value;
+		}
+	}
+
+	void MetalComputeShader::SetUniform2f(const std::string& name, const glm::vec2& vector){
+
+	}
+
+	void MetalComputeShader::SetUniform3f(const std::string& name, const glm::vec3& vector) {
+		if (name == "u_CameraPosition") {
+			m_Uniforms.cameraPos = vector;
+		} else if (name == "u_CameraDirection") {
+			m_Uniforms.cameraDir = vector;
+		} else if (name == "u_CameraUp") {
+			m_Uniforms.cameraUp = vector;
+		} else if (name == "u_CameraRight") {
+			m_Uniforms.cameraRight = vector;
+		}
+	}
+
+	void MetalComputeShader::SetUniform4f(const std::string& name, const glm::vec4& vector){
+
+	}
+
+	void MetalComputeShader::SetUniformMat3f(const std::string& name, const glm::mat3& matrix) {
+
+	}
+
+
+	void MetalComputeShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
+
 	}
 
 }

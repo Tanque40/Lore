@@ -2,7 +2,9 @@
 
 #include "Lore/Renderer/Renderer.h"
 #include "Lore/Renderer/Buffer.h"
+#ifdef LORE_PLATFORM_WINDOWS
 #include "Lore/Platform/OpenGL/OpenGLBuffer.h"
+#endif
 
 #ifdef LORE_PLATFORM_MAC
 #include "Lore/Platform/Metal/MetalBuffer.h"
@@ -15,9 +17,11 @@ namespace Lore {
 		case RendererAPI::API::None:
 			LR_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
 			return nullptr;
+#ifdef LORE_PLATFORM_WINDOWS
 		case RendererAPI::API::OpenGL:
 			return new OpenGLVertexBuffer(vertices, size);
 			break;
+#endif // LORE_PLATFORM_WINDOWS
 #ifdef LORE_PLATFORM_MAC
 		case RendererAPI::API::Metal:
 			return new MetalVertexBuffer(vertices, size);
@@ -34,9 +38,11 @@ namespace Lore {
 		case RendererAPI::API::None:
 			LR_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
 			return nullptr;
+#ifdef LORE_PLATFORM_WINDOWS
 		case RendererAPI::API::OpenGL:
 			return new OpenGLIndexBuffer(indices, count);
 			break;
+#endif // LORE_PLATFORM_WINDOWS
 #ifdef LORE_PLATFORM_MAC
 		case RendererAPI::API::Metal:
 			return new MetalIndexBuffer(indices, count);
@@ -61,8 +67,7 @@ namespace Lore {
 #endif
 #ifdef LORE_PLATFORM_MAC
 		case RendererAPI::API::Metal:
-			//return new MetalStorageBuffer(size, binding); --- IGNORE ---
-			LR_CORE_ASSERT(false, "Metal StorageBuffer is not implemented yet!");
+			return new MetalStorageBuffer(size, binding);
 			return nullptr;
 #endif
 		}
