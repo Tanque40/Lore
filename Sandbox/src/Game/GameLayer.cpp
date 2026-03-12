@@ -2,6 +2,8 @@
 
 #include "Game/GameLayer.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 GameLayer::~GameLayer() {
 	m_ComputeShader.reset();
 	m_ComputeTexture.reset();
@@ -43,6 +45,38 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	// Update FPS and frame time
 	m_FrameTime = ts.GetSeconds();
 	m_FPS = 1.0f / m_FrameTime;
+
+	// Camera movement
+	if (Lore::Input::IsKeyPressed(LR_KEY_D)) {
+		glm::vec3 position = m_Camera.GetPosition();
+		position += glm::vec3(-1.0f, 0.0f, 0.0f) * m_CameraSpeed * ts.GetSeconds();
+		m_Camera.SetPosition(position);
+	}
+
+	if (Lore::Input::IsKeyPressed(LR_KEY_A)) {
+		glm::vec3 position = m_Camera.GetPosition();
+		position += glm::vec3(1.0f, 0.0f, 0.0f) * m_CameraSpeed * ts.GetSeconds();
+		m_Camera.SetPosition(position);
+	}
+
+	if (Lore::Input::IsKeyPressed(LR_KEY_W)) {
+		glm::vec3 position = m_Camera.GetPosition();
+		position += glm::vec3(0.0f, 0.0f, -1.0f) * m_CameraSpeed * ts.GetSeconds();
+		m_Camera.SetPosition(position);
+	}
+
+	if (Lore::Input::GetMousePosition().second > 0.0f) { // Only rotate if mouse is within window
+		glm::vec3 direction = m_Camera.GetDirection();
+		direction = glm::rotate(direction, -Lore::Input::GetMouseX() * 0.002f, glm::vec3(0.0f, 1.0f, 0.0f));
+		direction = glm::rotateX(direction, -Lore::Input::GetMouseY() * 0.002f);
+		m_Camera.SetDirection(direction);
+	}
+
+	if (Lore::Input::IsKeyPressed(LR_KEY_S)) {
+		glm::vec3 position = m_Camera.GetPosition();
+		position += glm::vec3(0.0f, 0.0f, 1.0f) * m_CameraSpeed * ts.GetSeconds();
+		m_Camera.SetPosition(position);
+	}
 
 	m_ComputeShader->SetUniform3f("u_CameraPos", m_Camera.GetPosition());
 	m_ComputeShader->SetUniform3f("u_CameraDir", m_Camera.GetDirection());

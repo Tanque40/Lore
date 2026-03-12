@@ -38,6 +38,7 @@ private:
 	uint32_t m_Height = 600;
 
 	PerspectiveCamera m_Camera;
+	float m_CameraSpeed = 10.0f;
 
 public:
 	GameLayer() : Layer("Game"), m_Grid(m_GridDimension, m_GridDimension), m_Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension) {

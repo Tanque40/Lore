@@ -98,7 +98,7 @@ kernel void compute_main(
                 colorFinal = DecodificarColor(nodes[indiceHijo].material);
 
                 // Oclusión ambiental falsa basada en distancia/pasos
-                colorFinal.rgb *= (1.0 - (float(paso) / float(maxSteps)));
+                colorFinal.rgb *= (0.8 - (float(paso) / float(maxSteps)));
                 hit = true;
                 break; // Romper el bucle de niveles
             }

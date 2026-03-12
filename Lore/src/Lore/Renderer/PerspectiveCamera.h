@@ -35,7 +35,7 @@ public:
 	inline const glm::vec3& GetDirection() const { return m_CameraDirection; }
 	inline const glm::vec3& GetUp() const { return m_CameraUp; }
 	inline const glm::vec3& GetRight() const { return m_CameraRight; }
-	inline float GetFov() const { return m_Fov; }
+	inline float GetFov() const { return glm::radians(m_Fov); }
 
 	void RecalculateCameraVectors() {
 		m_CameraRight = glm::normalize(glm::cross(m_CameraDirection, m_CameraUp));
