@@ -18,11 +18,15 @@ void GameLayer::OnAttach() {
 	m_Camera.SetPosition(cameraPosition);
 	m_Camera.SetDirection(glm::normalize(glm::vec3(32.0f, 32.0f, 32.0f) - cameraPosition));
 
+	uint32_t squareRatio = 10;
 	// Create a visible 8x8x8 cube of voxels centered around (32,32,32)
-	for (uint32_t x = 28; x < 36; x++)
-		for (uint32_t y = 28; y < 36; y++)
-			for (uint32_t z = 28; z < 36; z++)
-				m_VoxelGrid.SetVoxel(x, y, z, 0xFFFF00FF);
+	for (uint32_t x = 0; x < 36; x++)
+		for (uint32_t y = 0; y < 36; y++)
+			for (uint32_t z = 0; z < 36; z++) {
+				uint32_t squareRoot = static_cast<uint32_t>(std::sqrt((x - 24) * (x - 24) + (y - 24) * (y - 24) + (z - 24) * (z - 24)));
+				if (squareRoot <= squareRatio)
+					m_VoxelGrid.SetVoxel(x, y, z, 0x70000099);
+			}
 
 	m_VoxelGrid.SetVoxel(38, 38, 38, 0xFF0000FF); // Red center voxel
 
@@ -61,20 +65,13 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 
 	if (Lore::Input::IsKeyPressed(LR_KEY_W)) {
 		glm::vec3 position = m_Camera.GetPosition();
-		position += glm::vec3(0.0f, 0.0f, -1.0f) * m_CameraSpeed * ts.GetSeconds();
+		position += glm::vec3(0.0f, 0.0f, 1.0f) * m_CameraSpeed * ts.GetSeconds();
 		m_Camera.SetPosition(position);
-	}
-
-	if (Lore::Input::GetMousePosition().second > 0.0f) { // Only rotate if mouse is within window
-		glm::vec3 direction = m_Camera.GetDirection();
-		direction = glm::rotate(direction, -Lore::Input::GetMouseX() * 0.002f, glm::vec3(0.0f, 1.0f, 0.0f));
-		direction = glm::rotateX(direction, -Lore::Input::GetMouseY() * 0.002f);
-		m_Camera.SetDirection(direction);
 	}
 
 	if (Lore::Input::IsKeyPressed(LR_KEY_S)) {
 		glm::vec3 position = m_Camera.GetPosition();
-		position += glm::vec3(0.0f, 0.0f, 1.0f) * m_CameraSpeed * ts.GetSeconds();
+		position += glm::vec3(0.0f, 0.0f, -1.0f) * m_CameraSpeed * ts.GetSeconds();
 		m_Camera.SetPosition(position);
 	}
 
