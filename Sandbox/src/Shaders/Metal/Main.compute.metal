@@ -21,7 +21,7 @@ inline float4 DecodificarColor(uint material) {
     float r = float(material & 0xFF) / 255.0;
     float g = float((material >> 8) & 0xFF) / 255.0;
     float b = float((material >> 16) & 0xFF) / 255.0;
-    return float4(r, g, b, 1.0);
+    return float4(r, g, b, 1.0f);
 }
 
 // 2. El Kernel Principal
@@ -31,10 +31,12 @@ kernel void compute_main(
     constant Uniforms& uniforms [[buffer(1)]],
     uint2 gridPos [[thread_position_in_grid]])
 {
+	float gamma = 2.2;
+
 	// Configuración del Ray Marching
     float worldSize = 64.0f; // Tamaño del VoxelGrid original (ej. 64.0)
-    float stepSize = 0.5f;  // Qué tan pequeño es el paso (ej. 0.25)
-    int maxSteps = 150;    // Máximo de pasos antes de rendirse (ej. 400)
+    float stepSize = 0.1f;  // Qué tan pequeño es el paso (ej. 0.25)
+    int maxSteps = 200;    // Máximo de pasos antes de rendirse (ej. 400)
 
     // Límite de pantalla
     if (gridPos.x >= outputTexture.get_width() || gridPos.y >= outputTexture.get_height()) {
@@ -73,7 +75,7 @@ kernel void compute_main(
         float tamañoActual = worldSize;
 
         // Asumimos un máximo de 10 subdivisiones (suficiente para un grid de 1024)
-        for (int nivel = 0; nivel < 10; nivel++) {
+        for (int nivel = 0; nivel < 8; nivel++) {
             uint desc = nodes[nodoActual].descriptor;
             uint validMask = desc & 0xFF;
             uint leafMask = (desc >> 8) & 0xFF;
@@ -98,7 +100,9 @@ kernel void compute_main(
                 colorFinal = DecodificarColor(nodes[indiceHijo].material);
 
                 // Oclusión ambiental falsa basada en distancia/pasos
-                colorFinal.rgb *= (0.8 - (float(paso) / float(maxSteps)));
+                colorFinal.rgb *= (1.0 - (float(paso) / float(maxSteps)));
+				// Corrección gamma para evitar que los colores se vean demasiado oscuros
+				colorFinal.rgb = pow(colorFinal.rgb, float3(1.0 / gamma));
                 hit = true;
                 break; // Romper el bucle de niveles
             }

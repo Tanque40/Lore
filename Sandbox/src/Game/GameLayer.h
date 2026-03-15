@@ -37,7 +37,7 @@ private:
 	uint32_t m_Width = 800;
 	uint32_t m_Height = 600;
 
-	PerspectiveCamera m_Camera;
+	Lore::PerspectiveCamera m_Camera;
 	float m_CameraSpeed = 10.0f;
 
 public:
@@ -57,5 +57,9 @@ public:
 	void OnImGuiRender() override;
 	void OnEvent(Lore::Event& event) override;
 
+	void CameraMovement(Lore::TimeStep ts);
+	void CameraMouseMovement(Lore::TimeStep ts);
+
+	bool CameraMouseScroll(Lore::MouseScrolledEvent event);
 	bool WindowResize(Lore::WindowResizeEvent& e);
 };
