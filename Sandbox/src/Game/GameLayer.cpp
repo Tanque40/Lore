@@ -92,10 +92,10 @@ void GameLayer::OnEvent(Lore::Event& event) {
 void GameLayer::CameraMovement(Lore::TimeStep ts) {
 	if (Lore::Input::IsKeyPressed(LR_KEY_W))
 		m_Camera.ProcessKeyboard(Lore::CameraMovement::FORWARD, ts.GetSeconds());
-	if (Lore::Input::IsKeyPressed(LR_KEY_S))
-		m_Camera.ProcessKeyboard(Lore::CameraMovement::BACKWARD, ts.GetSeconds());
 	if (Lore::Input::IsKeyPressed(LR_KEY_A))
 		m_Camera.ProcessKeyboard(Lore::CameraMovement::LEFT, ts.GetSeconds());
+	if (Lore::Input::IsKeyPressed(LR_KEY_S))
+		m_Camera.ProcessKeyboard(Lore::CameraMovement::BACKWARD, ts.GetSeconds());
 	if (Lore::Input::IsKeyPressed(LR_KEY_D))
 		m_Camera.ProcessKeyboard(Lore::CameraMovement::RIGHT, ts.GetSeconds());
 }
