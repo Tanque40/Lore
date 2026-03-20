@@ -13,7 +13,7 @@ namespace Lore {
 
 	class PerspectiveCamera {
 	private:
-		float m_Yaw = -90.0f; // Mirando hacia el eje Z negativo
+		float m_Yaw = 0.0f; // Mirando hacia el eje Z negativo
 		float m_Pitch = 0.0f; // Sin inclinación vertical
 		float m_MouseSensitivity = 0.1f;
 		float m_Fov = 45.f;

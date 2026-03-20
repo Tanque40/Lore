@@ -191,6 +191,10 @@ namespace Lore {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		ImGui::Begin("Viewport");
 
+		if (ImGui::IsWindowFocused()) {
+			Application::Get().GetWindow().HideCursor();
+		}
+
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 		Application& app = Application::Get();
 		Framebuffer& fb = app.GetFramebuffer();

@@ -37,6 +37,8 @@ private:
 	uint32_t m_Width = 800;
 	uint32_t m_Height = 600;
 
+	float m_MousePositionX, m_MousePositionY;
+
 	Lore::PerspectiveCamera m_Camera;
 	float m_CameraSpeed = 10.0f;
 
@@ -61,5 +63,6 @@ public:
 	void CameraMouseMovement(Lore::TimeStep ts);
 
 	bool CameraMouseScroll(Lore::MouseScrolledEvent event);
-	bool WindowResize(Lore::WindowResizeEvent& e);
+	bool WindowResize(Lore::WindowResizeEvent& event);
+	bool KeyPressed(Lore::KeyPressedEvent event);
 };

@@ -186,6 +186,16 @@ namespace Lore {
 		m_Data.VSync = enabled;
 	}
 
+	void MacWindow::HideCursor() {
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		m_Data.CursorHidden = true;
+	}
+
+	void MacWindow::ShowCursor() {
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		m_Data.CursorHidden = false;
+	}
+
 	bool MacWindow::IsVSync() const {
 		return m_Data.VSync;
 	}

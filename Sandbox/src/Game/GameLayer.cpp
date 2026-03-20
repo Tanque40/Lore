@@ -14,7 +14,7 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
-	glm::vec3 cameraPosition = { 20.0f, 36.0f, 20.0f };
+	glm::vec3 cameraPosition = { 00.0f, 0.0f, 20.0f };
 	m_Camera.SetPosition(cameraPosition);
 	m_Camera.SetDirection(glm::normalize(glm::vec3(32.0f, 32.0f, 32.0f) - cameraPosition));
 
@@ -47,6 +47,8 @@ void GameLayer::OnAttach() {
 	// 4. En el ciclo de renderizado (OnUpdate):
 
 	LR_TRACE("SVO built with {} nodes", m_SVOData.size());
+
+	Lore::Application::Get().GetWindow().HideCursor();
 }
 
 void GameLayer::OnUpdate(Lore::TimeStep ts) {
@@ -87,6 +89,7 @@ void GameLayer::OnEvent(Lore::Event& event) {
 	Lore::EventDispatcher dispatcher(event);
 	dispatcher.Dispatch<Lore::WindowResizeEvent>(LR_BIND_EVENT_FN(GameLayer::WindowResize));
 	dispatcher.Dispatch<Lore::MouseScrolledEvent>(LR_BIND_EVENT_FN(GameLayer::CameraMouseScroll));
+	dispatcher.Dispatch<Lore::KeyPressedEvent>(LR_BIND_EVENT_FN(GameLayer::KeyPressed));
 }
 
 void GameLayer::CameraMovement(Lore::TimeStep ts) {
@@ -111,7 +114,8 @@ void GameLayer::CameraMouseMovement(Lore::TimeStep ts) {
 	lastX = mouseX;
 	lastY = mouseY;
 
-	m_Camera.ProcessMouseMovement(xOffset, yOffset);
+	if (Lore::Application::Get().GetWindow().IsCursorHidden())
+		m_Camera.ProcessMouseMovement(xOffset, yOffset);
 }
 
 bool GameLayer::CameraMouseScroll(Lore::MouseScrolledEvent event) {
@@ -120,9 +124,17 @@ bool GameLayer::CameraMouseScroll(Lore::MouseScrolledEvent event) {
 	return false;
 }
 
-bool GameLayer::WindowResize(Lore::WindowResizeEvent& e) {
-	m_Width = e.GetWidth();
-	m_Height = e.GetHeight();
+bool GameLayer::WindowResize(Lore::WindowResizeEvent& event) {
+	m_Width = event.GetWidth();
+	m_Height = event.GetHeight();
 	m_ComputeTexture->Resize(m_Width, m_Height);
+	return false;
+}
+
+bool GameLayer::KeyPressed(Lore::KeyPressedEvent event) {
+	if (event.GetKeyCode() == LR_KEY_ESCAPE) {
+		ImGui::SetWindowFocus(NULL);
+		Lore::Application::Get().GetWindow().ShowCursor();
+	}
 	return false;
 }
