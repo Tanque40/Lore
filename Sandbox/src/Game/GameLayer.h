@@ -26,7 +26,8 @@ private:
 	std::vector<std::vector<std::vector<uint32_t>>> m_Grid3DIntMatrix;
 	std::string m_Grid3DIntMatrixString = "";
 
-	SVO::VoxelGrid m_VoxelGrid{ 64 };
+	SVO::VoxelGrid m_VoxelGrid{ 256 };
+	std::string m_VoxelGridString = "";
 	std::vector<SVO::SVONode> m_SVOData;
 	std::shared_ptr<Lore::StorageBuffer> svoBuffer;
 

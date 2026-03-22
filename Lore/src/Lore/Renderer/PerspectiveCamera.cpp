@@ -12,11 +12,11 @@ namespace Lore {
 	}
 
 	void PerspectiveCamera::ProcessKeyboard(CameraMovement direction, float deltaTime) {
-		float velocity = 2.5f * deltaTime;
+		float velocity = m_MovementSpeed * deltaTime;
 		if (direction == CameraMovement::FORWARD)
-			m_CameraPosition += m_CameraFront * velocity;
+			m_CameraPosition += m_CameraDirection * velocity;
 		if (direction == CameraMovement::BACKWARD)
-			m_CameraPosition -= m_CameraFront * velocity;
+			m_CameraPosition -= m_CameraDirection * velocity;
 		if (direction == CameraMovement::LEFT)
 			m_CameraPosition -= m_CameraRight * velocity;
 		if (direction == CameraMovement::RIGHT)
@@ -46,8 +46,8 @@ namespace Lore {
 		m_Fov -= (float)yOffset;
 		if (m_Fov < 1.0f)
 			m_Fov = 1.0f;
-		if (m_Fov > 45.0f)
-			m_Fov = 45.0f;
+		if (m_Fov > 90.0f)
+			m_Fov = 90.0f;
 	}
 
 	void PerspectiveCamera::UpdateCameraVectors() {
@@ -55,10 +55,10 @@ namespace Lore {
 		front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 		front.y = sin(glm::radians(m_Pitch));
 		front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-		m_CameraFront = glm::normalize(front);
+		m_CameraDirection = glm::normalize(front);
 
-		m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_CameraUp));
-		m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
+		m_CameraRight = glm::normalize(glm::cross(m_CameraDirection, m_CameraUp));
+		m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraDirection));
 	}
 
 }

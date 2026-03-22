@@ -14,9 +14,9 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
-	glm::vec3 cameraPosition = { 00.0f, 0.0f, 20.0f };
+	glm::vec3 cameraPosition = { 20.0f, 24.0f, 30.0f };
 	m_Camera.SetPosition(cameraPosition);
-	m_Camera.SetDirection(glm::normalize(glm::vec3(32.0f, 32.0f, 32.0f) - cameraPosition));
+	m_Camera.SetDirection(glm::normalize(glm::vec3(24.0f, 24.0f, 24.0f) - cameraPosition));
 
 	uint32_t squareRatio = 10;
 	// Create a visible 8x8x8 cube of voxels centered around (32,32,32)
@@ -25,14 +25,14 @@ void GameLayer::OnAttach() {
 			for (uint32_t z = 0; z < 36; z++) {
 				uint32_t squareRoot = static_cast<uint32_t>(std::sqrt((x - 24) * (x - 24) + (y - 24) * (y - 24) + (z - 24) * (z - 24)));
 				if (9 < squareRoot && squareRoot <= squareRatio) {
-					uint32_t material = rand(); // Un color azul con algo de transparencia
+					uint32_t material = rand(); // Un color aleatorio para cada voxel
 					m_VoxelGrid.SetVoxel(x, y, z, material);
 				}
 			}
 
 	m_VoxelGrid.SetVoxel(24, 24, 24, 0xFFFFFFFF);
 
-	m_VoxelGrid.SetVoxel(38, 38, 38, 0xFF0000FF); // Red center voxel
+	m_VoxelGridString = m_VoxelGrid.ToString();
 
 	SVO::SVOBuilder builder;
 	m_SVOData = builder.Build(m_VoxelGrid);
@@ -63,7 +63,7 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	m_ComputeShader->SetUniform3f("u_CameraDir", m_Camera.GetDirection());
 	m_ComputeShader->SetUniform3f("u_CameraUp", m_Camera.GetUp());
 	m_ComputeShader->SetUniform3f("u_CameraRight", m_Camera.GetRight());
-	m_ComputeShader->SetUniform1f("u_Fov", m_Camera.GetFov());
+	m_ComputeShader->SetUniform1f("u_Fov", glm::radians(m_Camera.GetFov()));
 
 	svoBuffer->Bind(0);
 
@@ -93,14 +93,16 @@ void GameLayer::OnEvent(Lore::Event& event) {
 }
 
 void GameLayer::CameraMovement(Lore::TimeStep ts) {
-	if (Lore::Input::IsKeyPressed(LR_KEY_W))
-		m_Camera.ProcessKeyboard(Lore::CameraMovement::FORWARD, ts.GetSeconds());
-	if (Lore::Input::IsKeyPressed(LR_KEY_A))
-		m_Camera.ProcessKeyboard(Lore::CameraMovement::LEFT, ts.GetSeconds());
-	if (Lore::Input::IsKeyPressed(LR_KEY_S))
-		m_Camera.ProcessKeyboard(Lore::CameraMovement::BACKWARD, ts.GetSeconds());
-	if (Lore::Input::IsKeyPressed(LR_KEY_D))
-		m_Camera.ProcessKeyboard(Lore::CameraMovement::RIGHT, ts.GetSeconds());
+	if (Lore::Application::Get().GetWindow().IsCursorHidden()) {
+		if (Lore::Input::IsKeyPressed(LR_KEY_W))
+			m_Camera.ProcessKeyboard(Lore::CameraMovement::FORWARD, ts.GetSeconds());
+		if (Lore::Input::IsKeyPressed(LR_KEY_A))
+			m_Camera.ProcessKeyboard(Lore::CameraMovement::LEFT, ts.GetSeconds());
+		if (Lore::Input::IsKeyPressed(LR_KEY_S))
+			m_Camera.ProcessKeyboard(Lore::CameraMovement::BACKWARD, ts.GetSeconds());
+		if (Lore::Input::IsKeyPressed(LR_KEY_D))
+			m_Camera.ProcessKeyboard(Lore::CameraMovement::RIGHT, ts.GetSeconds());
+	}
 }
 
 void GameLayer::CameraMouseMovement(Lore::TimeStep ts) {
@@ -120,7 +122,8 @@ void GameLayer::CameraMouseMovement(Lore::TimeStep ts) {
 
 bool GameLayer::CameraMouseScroll(Lore::MouseScrolledEvent event) {
 	float yOffset = event.GetYOffset(); // O la función que tengas para el scroll
-	m_Camera.ProcessMouseScroll(yOffset);
+	if (Lore::Application::Get().GetWindow().IsCursorHidden())
+		m_Camera.ProcessMouseScroll(yOffset);
 	return false;
 }
 

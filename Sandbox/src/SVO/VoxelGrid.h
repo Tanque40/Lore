@@ -4,12 +4,6 @@
 
 namespace SVO {
 
-	// El nodo empaquetado de 8 bytes (64 bits) exactos para la GPU
-	struct SVONode {
-		uint32_t descriptor; // Bits 0-7: Valid, Bits 8-15: Leaf, Bits 16-31: Child Index
-		uint32_t material;   // Tu información de color (RGBA o RGB + Propiedad)
-	};
-
 	// Un grid volumétrico temporal para la CPU
 	class VoxelGrid {
 	private:
@@ -31,5 +25,33 @@ namespace SVO {
 		}
 
 		inline uint32_t GetSize() const { return m_Size; }
+
+		inline std::string ToString() const {
+			std::string result;
+			uint32_t blocksCount = 0;
+
+			for (uint32_t z = 0; z < m_Size; z++) {
+				//result += "Layer " + std::to_string(z) + ":\n";
+				for (uint32_t y = 0; y < m_Size; y++) {
+					for (uint32_t x = 0; x < m_Size; x++) {
+						if (GetVoxel(x, y, z)) {
+							//			result += "#";
+							blocksCount++;
+						}
+						else {
+							//			result += ".";
+						}
+					}
+					//	result += "\n";
+				}
+				//result += "\n";
+			}
+
+			result += "Total voxel grid size: " + std::to_string(m_Size * m_Size * m_Size) + "\n";
+			result += "Total non air blocks: " + std::to_string(blocksCount) + "\n";
+			result += "Memory usage: " + std::to_string(blocksCount * sizeof(uint32_t)) + " bytes\n";
+
+			return result;
+		}
 	};
 }
