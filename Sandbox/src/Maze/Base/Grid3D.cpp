@@ -79,37 +79,6 @@ namespace Maze {
 		}
 	}
 
-	// * Should need to indicate the meaning of the integers in the matrix (e.g. 0 = no links, 1 = linked to north, 2 = linked to south, etc.)
-	// * Using bits this will be something like:
-	// * 128 | 64 |   32  |  16  |   8   |   4  |  2 | 1
-	// *   0 |  0 | north | east | south | west | up | down
-	// *   0 |  0 |   1   |  0   |   1   |   1  |  1 | 0
-	// * The final value for this cell will be  32 + 8 + 4 + 2 = 46
-	// * This will be useful for exporting the maze to a file or for using it in a shader, for example.
-	std::vector<std::vector<std::vector<uint32_t>>> Grid3D::ToIntMatrix3D() {
-		std::vector<std::vector<std::vector<uint32_t>>> matrix3D;
-
-		EachLevel([&](std::vector<std::vector<Cell3D*>> level) {
-			std::vector<std::vector<uint32_t>> matrixLevel;
-			for (auto row : level) {
-				std::vector<uint32_t> matrixRow;
-				for (auto cell : row) {
-					uint32_t value = 0;
-					if (cell->IsLinked(cell->GetNorth()))	value |= 32; // 32
-					if (cell->IsLinked(cell->GetEast()))	value |= 16; // 16
-					if (cell->IsLinked(cell->GetSouth()))	value |= 8;  // 8
-					if (cell->IsLinked(cell->GetWest()))	value |= 4;  // 4
-					if (cell->IsLinked(cell->GetUp()))		value |= 2;  // 2
-					if (cell->IsLinked(cell->GetDown()))	value |= 1;  // 1
-					matrixRow.push_back(value);
-				}
-				matrixLevel.push_back(matrixRow);
-			}
-			matrix3D.push_back(matrixLevel);
-			});
-
-		return matrix3D;
-	}
 
 	std::string Grid3D::IntMatrix3DToString(const std::vector<std::vector<std::vector<uint32_t>>>& matrix3D) {
 		std::string output = "";
