@@ -68,8 +68,17 @@ void GameLayer::OnImGuiRender() {
 					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
 					Maze::BinaryTree::On(&m_Grid3D);
 					m_Grid3DString = m_Grid3D.ToString();
-					m_Grid3DIntMatrix = m_Grid3D.ToIntMatrix3D();
-					m_Grid3DIntMatrixString = Maze::Grid3D::IntMatrix3DToString(m_Grid3DIntMatrix);
+
+					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
+					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
+
+					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
+					// Lo enlazamos al slot 0 (binding=0)
+					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
+
+					// 3. Subes los datos a la GPU
+					svoBuffer->SetData(m_SVOData.data(), bufferSize);
+
 				}
 
 				ImGui::EndTable();

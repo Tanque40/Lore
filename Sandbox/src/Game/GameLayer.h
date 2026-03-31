@@ -28,6 +28,7 @@ private:
 
 	SVO::VoxelGrid m_VoxelGrid{ 256 };
 	std::string m_VoxelGridString = "";
+	SVO::SVOBuilder m_SVOBuilder;
 	std::vector<SVO::SVONode> m_SVOData;
 	std::shared_ptr<Lore::StorageBuffer> svoBuffer;
 

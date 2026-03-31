@@ -34,8 +34,7 @@ void GameLayer::OnAttach() {
 
 	m_VoxelGridString = m_VoxelGrid.ToString();
 
-	SVO::SVOBuilder builder;
-	m_SVOData = builder.Build(m_VoxelGrid);
+	m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
 
 	uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
 	// Lo enlazamos al slot 0 (binding=0)

@@ -21,6 +21,11 @@ inline float4 DecodificarColor(uint material) {
 	float r = float(material & 0xFF) / 255.0;
 	float g = float((material >> 8) & 0xFF) / 255.0;
 	float b = float((material >> 16) & 0xFF) / 255.0;
+	float a = float((material >> 24) & 0xFF) / 255.0; // Si usas el byte alfa para algo
+
+	if (a == 0.0)
+		return float4(r, g, b, a);
+
 	return float4(r, g, b, 1.0f);
 }
 
@@ -93,11 +98,13 @@ kernel void compute_main(
 			uint octante = bitX | (bitY << 1) | (bitZ << 2);
 			uint mascaraOctante = 1 << octante;
 
+			uint indiceHijo = childPtr + octante;
+			colorFinal = DecodificarColor(nodes[indiceHijo].material);
 			// B. ¿Es sólido el octante actual?
-			if ((leafMask & mascaraOctante) != 0) {
+			if ((leafMask & mascaraOctante) != 0 && colorFinal.a > 0.0) {
 				// ¡Chocamos con la pared de la cueva!
-				uint indiceHijo = childPtr + octante;
-				colorFinal = DecodificarColor(nodes[indiceHijo].material);
+
+
 
 				// Oclusión ambiental falsa basada en distancia/pasos
 				colorFinal.rgb *= (1.0 - (float(paso) / float(maxSteps)));

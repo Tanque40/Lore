@@ -14,6 +14,8 @@ namespace Maze {
 			ConfigureCells();
 		}
 
+		inline uint32_t GetRows() { return m_Rows; }
+		inline uint32_t GetColumns() { return m_Columns; }
 		inline uint32_t GetLevels() { return m_Levels; }
 
 		void PrepareGrid();
