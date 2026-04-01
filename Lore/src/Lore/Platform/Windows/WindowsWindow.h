@@ -18,6 +18,7 @@ namespace Lore {
 			unsigned int Width, Height;
 			unsigned int FramebufferWidth, FramebufferHeight;
 			bool VSync;
+			bool CursorHidden = false;
 
 			EventCallbackFn EventCallback;
 		};
@@ -43,6 +44,13 @@ namespace Lore {
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
+
+		void HideCursor() override;
+		void ShowCursor() override;
+
+		inline bool IsCursorHidden() const override {
+			return m_Data.CursorHidden;
+		}
 
 		inline virtual void* GetNativeWindow() const override { return m_Window; }
 

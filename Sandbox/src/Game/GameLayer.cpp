@@ -18,6 +18,10 @@ void GameLayer::OnAttach() {
 	m_Camera.SetPosition(cameraPosition);
 	m_Camera.SetDirection(glm::normalize(glm::vec3(24.0f, 24.0f, 24.0f) - cameraPosition));
 
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<unsigned int> distrib(0, 0xFFFFFFFF);
+
 	uint32_t squareRatio = 10;
 	// Create a visible 8x8x8 cube of voxels centered around (32,32,32)
 	for (uint32_t x = 0; x < 36; x++)
@@ -25,7 +29,7 @@ void GameLayer::OnAttach() {
 			for (uint32_t z = 0; z < 36; z++) {
 				uint32_t squareRoot = static_cast<uint32_t>(std::sqrt((x - 24) * (x - 24) + (y - 24) * (y - 24) + (z - 24) * (z - 24)));
 				if (9 < squareRoot && squareRoot <= squareRatio) {
-					uint32_t material = rand(); // Un color aleatorio para cada voxel
+					uint32_t material = distrib(gen); // Un color aleatorio para cada voxel
 					m_VoxelGrid.SetVoxel(x, y, z, material);
 				}
 			}
@@ -58,17 +62,17 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	CameraMovement(ts);
 	CameraMouseMovement(ts);
 
-	m_ComputeShader->SetUniform3f("u_CameraPos", m_Camera.GetPosition());
-	m_ComputeShader->SetUniform3f("u_CameraDir", m_Camera.GetDirection());
-	m_ComputeShader->SetUniform3f("u_CameraUp", m_Camera.GetUp());
-	m_ComputeShader->SetUniform3f("u_CameraRight", m_Camera.GetRight());
-	m_ComputeShader->SetUniform1f("u_Fov", glm::radians(m_Camera.GetFov()));
-
 	svoBuffer->Bind(0);
 
 	// 1. Bind compute resources
 	m_ComputeShader->Bind();
 	m_ComputeTexture->BindAsImage(0);
+
+	m_ComputeShader->SetUniform3f("u_CameraPos", m_Camera.GetPosition());
+	m_ComputeShader->SetUniform3f("u_CameraDir", m_Camera.GetDirection());
+	m_ComputeShader->SetUniform3f("u_CameraUp", m_Camera.GetUp());
+	m_ComputeShader->SetUniform3f("u_CameraRight", m_Camera.GetRight());
+	m_ComputeShader->SetUniform1f("u_Fov", glm::radians(m_Camera.GetFov()));
 
 	// 2. Dispatch compute shader
 	uint32_t groupsX = (m_Width + 15) / 16;

@@ -171,6 +171,16 @@ namespace Lore {
 		return m_Data.VSync;
 	}
 
+	void WindowsWindow::HideCursor() {
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		m_Data.CursorHidden = true;
+	}
+
+	void WindowsWindow::ShowCursor() {
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		m_Data.CursorHidden = false;
+	}
+
 }
 
 #endif
