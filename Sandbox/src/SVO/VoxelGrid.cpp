@@ -34,7 +34,7 @@ namespace SVO {
 
 	VoxelGrid VoxelGrid::CastToVoxels(Maze::Grid3D* laberinto, int gridSize) {
 
-		int celdasPorEje = 1; // Tamaño de cada Cell3D en vóxeles
+		int celdasPorEje = 3; // Tamaño de cada Cell3D en vóxeles
 
 		// Calculamos el tamaño total del mundo en vóxeles.
 		// Debe redondearse al siguiente múltiplo de potencia de 2 para el SVO (ej. 64, 128)
@@ -85,6 +85,7 @@ namespace SVO {
 			if (cell->IsLinked(cell->GetDown())) {
 				vGrid.SetVoxel(bx + 1, by + 0, bz + 1, 0);
 			}
+
 			});
 
 		return vGrid;
