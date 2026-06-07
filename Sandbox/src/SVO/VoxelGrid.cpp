@@ -34,7 +34,7 @@ namespace SVO {
 
 	VoxelGrid VoxelGrid::CastToVoxels(Maze::Grid3D* laberinto, int gridSize) {
 
-		int celdasPorEje = 1; // Tamaño de cada Cell3D en vóxeles
+		int celdasPorEje = 4; // Tamaño de cada Cell3D en vóxeles
 
 		// Calculamos el tamaño total del mundo en vóxeles.
 		// Debe redondearse al siguiente múltiplo de potencia de 2 para el SVO (ej. 64, 128)
@@ -45,17 +45,21 @@ namespace SVO {
 		// Asumiremos un VoxelGrid de tamaño 64 para este ejemplo
 		VoxelGrid vGrid(gridSize);
 
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<unsigned int> distrib(0, 0xFFFFFFFF);
+
 		// 1. Llenar TODO el mundo de piedra (Material = 1)
 		for (uint32_t x = 0; x < gridSize; x++) {
 			for (uint32_t y = 0; y < gridSize; y++) {
 				for (uint32_t z = 0; z < gridSize; z++) {
-					uint32_t material = rand();
+					uint32_t material = distrib(gen);
 					vGrid.SetVoxel(x, y, z, material); // 1 = Piedra sólida
 				}
 			}
 		}
 
-		// 2. Esculpir los pasillos iterando sobre el Grid3D
+		// 2. Esculpir los   pasillos iterando sobre el Grid3D
 		laberinto->EachCell([&](Maze::Cell3D* cell) {
 
 			// Coordenada base del bloque 3x3x3 en el mundo de vóxeles
