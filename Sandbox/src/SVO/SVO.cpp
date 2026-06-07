@@ -28,9 +28,9 @@ namespace SVO {
 		bool isAllSolid = true;
 		uint32_t firstVoxel = grid.GetVoxel(x, y, z);
 
-		for (uint32_t dz = 0; dz < size; ++dz) {
-			for (uint32_t dy = 0; dy < size; ++dy) {
-				for (uint32_t dx = 0; dx < size; ++dx) {
+		for (uint32_t dz = 0; dz < size; dz++) {
+			for (uint32_t dy = 0; dy < size; dy++) {
+				for (uint32_t dx = 0; dx < size; dx++) {
 					uint32_t currentVoxel = grid.GetVoxel(x + dx, y + dy, z + dz);
 					if (currentVoxel != 0) isAllAir = false;
 					if (currentVoxel != firstVoxel) isAllSolid = false;

@@ -89,6 +89,7 @@ namespace SVO {
 			if (cell->IsLinked(cell->GetDown())) {
 				vGrid.SetVoxel(bx + 1, by + 0, bz + 1, 0);
 			}
+
 			});
 
 		return vGrid;

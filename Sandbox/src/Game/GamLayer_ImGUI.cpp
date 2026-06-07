@@ -69,7 +69,7 @@ void GameLayer::OnImGuiRender() {
 					Maze::BinaryTree::On(&m_Grid3D);
 					m_Grid3DString = m_Grid3D.ToString();
 
-					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
+					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 128);
 					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
 
 					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
