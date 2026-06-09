@@ -16,6 +16,11 @@ namespace SVO {
 			m_Data.resize(size * size * size, 0);
 		}
 
+		inline void Clear() {
+			m_Data.clear();
+			m_Size = 0;
+		}
+
 		inline void SetVoxel(uint32_t x, uint32_t y, uint32_t z, uint32_t material) {
 			m_Data[x + y * m_Size + z * m_Size * m_Size] = material;
 		}

@@ -52,7 +52,7 @@ void GameLayer::OnAttach() {
 	LR_TRACE("SVO built with {} nodes", m_SVOData.size());
 
 	Lore::Application::Get().GetWindow().HideCursor();
-}
+}	
 
 void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	// Update FPS and frame time

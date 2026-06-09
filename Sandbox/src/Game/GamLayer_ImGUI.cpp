@@ -69,16 +69,15 @@ void GameLayer::OnImGuiRender() {
 					Maze::BinaryTree::On(&m_Grid3D);
 					m_Grid3DString = m_Grid3D.ToString();
 
-					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 128);
+					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
 					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
+					m_VoxelGrid.Clear();
 
 					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
 					// Lo enlazamos al slot 0 (binding=0)
 					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
 
-					// 3. Subes los datos a la GPU
 					svoBuffer->SetData(m_SVOData.data(), bufferSize);
-
 				}
 
 				ImGui::EndTable();
@@ -106,6 +105,7 @@ void GameLayer::OnImGuiRender() {
 
 	if (!ImGui::CollapsingHeader("Camera")) {
 		ImGui::BeginChild("Camera Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+		ImGui::SliderFloat3("Camera Pos", m_Camera.GetPositionPtr(), -100.0f, 100.0f, "%.3f");
 		ImGui::SliderFloat("Movement Speed", m_Camera.GetMovemetSpeedPtr(), 0.0f, 20.0f, "%.3f");
 		ImGui::SliderFloat("Camera angle", m_Camera.GetFovPtr(), 0.0f, 90.0f, "%.3f");
 

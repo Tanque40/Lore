@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Lore {
 
@@ -39,6 +40,7 @@ namespace Lore {
 		glm::vec3 GetRight() const { return m_CameraRight; }
 		float GetFov() const { return m_Fov; }
 
+		float* GetPositionPtr() { return glm::value_ptr(m_CameraPosition); }
 		float* GetMovemetSpeedPtr() { return &m_MovementSpeed; }
 		float* GetFovPtr() { return &m_Fov; }
 

@@ -33,14 +33,14 @@ namespace SVO {
 	}
 
 	VoxelGrid VoxelGrid::CastToVoxels(Maze::Grid3D* laberinto, int gridSize) {
+		uint32_t newCellsPerAxis = 3;
 
-		int celdasPorEje = 4; // Tamaño de cada Cell3D en vóxeles
+		uint32_t i = 8;
+		while (std::pow(2, i) < gridSize) {
+			i++;
+		}
 
-		// Calculamos el tamaño total del mundo en vóxeles.
-		// Debe redondearse al siguiente múltiplo de potencia de 2 para el SVO (ej. 64, 128)
-		uint32_t tamañoX = laberinto->GetColumns() * celdasPorEje;
-		uint32_t tamañoY = laberinto->GetLevels() * celdasPorEje;
-		uint32_t tamañoZ = laberinto->GetRows() * celdasPorEje;
+		gridSize = static_cast<uint32_t>(std::pow(2, i + 1));
 
 		// Asumiremos un VoxelGrid de tamaño 64 para este ejemplo
 		VoxelGrid vGrid(gridSize);
@@ -63,9 +63,9 @@ namespace SVO {
 		laberinto->EachCell([&](Maze::Cell3D* cell) {
 
 			// Coordenada base del bloque 3x3x3 en el mundo de vóxeles
-			uint32_t bx = cell->GetColumn() * celdasPorEje;
-			uint32_t by = cell->GetLevel() * celdasPorEje;
-			uint32_t bz = cell->GetRow() * celdasPorEje;
+			uint32_t bx = cell->GetColumn() * newCellsPerAxis;
+			uint32_t by = cell->GetLevel() * newCellsPerAxis;
+			uint32_t bz = cell->GetRow() * newCellsPerAxis;
 
 			// Esculpir el centro (aire = 0)
 			vGrid.SetVoxel(bx + 1, by + 1, bz + 1, 0);
