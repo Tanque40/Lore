@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Lore.h>
+
 #include "Maze/Base/Grid3D.h"
 
 namespace SVO {
@@ -22,10 +24,12 @@ namespace SVO {
 		}
 
 		inline void SetVoxel(uint32_t x, uint32_t y, uint32_t z, uint32_t material) {
+			LR_ASSERT(x < m_Size && y < m_Size && z < m_Size, "VoxelGrid::SetVoxel out of bounds");
 			m_Data[x + y * m_Size + z * m_Size * m_Size] = material;
 		}
 
 		inline uint32_t GetVoxel(uint32_t x, uint32_t y, uint32_t z) const {
+			LR_ASSERT(x < m_Size && y < m_Size && z < m_Size, "VoxelGrid::GetVoxel out of bounds");
 			return m_Data[x + y * m_Size + z * m_Size * m_Size];
 		}
 

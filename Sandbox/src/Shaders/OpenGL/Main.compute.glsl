@@ -21,6 +21,8 @@ uniform vec3 u_CameraDir;
 uniform vec3 u_CameraUp;
 uniform vec3 u_CameraRight;
 uniform float u_Fov;
+uniform float u_WorldSize;
+uniform float u_MaxLevels;
 
 // Función auxiliar para decodificar color
 vec4 DecodificarColor(uint material) {
@@ -46,7 +48,8 @@ void main() {
 
 	float gamma = 2.2;
 
-	float worldSize = 256.0;
+	float worldSize = u_WorldSize;
+	int maxLevels = int(u_MaxLevels);
 	float stepSize = 0.1;
 	int maxSteps = 250;
 
@@ -73,7 +76,7 @@ void main() {
 		vec3 posCajaMin = vec3(0.0);
 		float tamanoActual = worldSize;
 
-		for (int nivel = 0; nivel < 8; nivel++) {
+		for (int nivel = 0; nivel < maxLevels; nivel++) {
 			uint desc = nodes[nodoActual].descriptor;
 			uint validMask = desc & 0xFFu;
 			uint leafMask = (desc >> 8) & 0xFFu;
@@ -93,7 +96,34 @@ void main() {
 			colorFinal = DecodificarColor(nodes[indiceHijo].material);
 
 			if ((leafMask & mascaraOctante) != 0u && colorFinal.a > 0.0) {
-				colorFinal.rgb *= (1.0 - (float(paso) / float(maxSteps)));
+				// Esquinas de la caja del vóxel/nodo hoja que golpeamos, para derivar
+				// la normal geométricamente (no se almacenan normales por nodo).
+				vec3 boxMin = posCajaMin + vec3(bool(bitX) ? halfSize : 0.0, bool(bitY) ? halfSize : 0.0, bool(bitZ) ? halfSize : 0.0);
+				vec3 boxMax = boxMin + halfSize;
+
+				vec3 distToMin = rayPos - boxMin;
+				vec3 distToMax = boxMax - rayPos;
+
+				vec3 normal = vec3(-1.0, 0.0, 0.0);
+				float minDist = distToMin.x;
+				if (distToMin.y < minDist) { minDist = distToMin.y; normal = vec3(0.0, -1.0, 0.0); }
+				if (distToMin.z < minDist) { minDist = distToMin.z; normal = vec3(0.0, 0.0, -1.0); }
+				if (distToMax.x < minDist) { minDist = distToMax.x; normal = vec3(1.0, 0.0, 0.0); }
+				if (distToMax.y < minDist) { minDist = distToMax.y; normal = vec3(0.0, 1.0, 0.0); }
+				if (distToMax.z < minDist) { minDist = distToMax.z; normal = vec3(0.0, 0.0, 1.0); }
+
+				// Luz "linterna" pegada a la cámara: como el rayo parte de la cámara,
+				// la dirección hacia la luz desde el punto de impacto es siempre -rayDir.
+				float ambient = 0.12;
+				float diffuse = max(dot(normal, -rayDir), 0.0);
+				float lighting = ambient + (1.0 - ambient) * diffuse;
+				colorFinal.rgb *= lighting;
+
+				// Atenuación por distancia (niebla) para poder juzgar profundidad
+				float distanciaRecorrida = float(paso) * stepSize;
+				float atenuacion = clamp(1.0 - distanciaRecorrida / (float(maxSteps) * stepSize), 0.0, 1.0);
+				colorFinal.rgb *= atenuacion;
+
 				colorFinal.rgb = pow(colorFinal.rgb, vec3(1.0 / gamma));
 				hit = true;
 				break;

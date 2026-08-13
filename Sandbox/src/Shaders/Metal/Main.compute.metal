@@ -14,6 +14,8 @@ struct Uniforms {
 	float3 cameraUp;
 	float3 cameraRight;
 	float fov;
+	float worldSize;
+	float maxLevels;
 };
 
 // Función auxiliar para decodificar color
@@ -39,7 +41,8 @@ kernel void compute_main(
 	float gamma = 2.2;
 
 	// Configuración del Ray Marching
-	float worldSize = 256.0f; // Tamaño del VoxelGrid original (ej. 64.0)
+	float worldSize = uniforms.worldSize; // Tamaño real del VoxelGrid/SVO subido a la GPU
+	int maxLevels = int(uniforms.maxLevels); // log2(worldSize): profundidad real del octree
 	float stepSize = 0.1f;  // Qué tan pequeño es el paso (ej. 0.25)
 	int maxSteps = 250;    // Máximo de pasos antes de rendirse (ej. 400)
 
@@ -79,8 +82,7 @@ kernel void compute_main(
 		float3 posCajaMin = float3(0.0);
 		float tamañoActual = worldSize;
 
-		// Asumimos un máximo de 10 subdivisiones (suficiente para un grid de 1024)
-		for (int nivel = 0; nivel < 8; nivel++) {
+		for (int nivel = 0; nivel < maxLevels; nivel++) {
 			uint desc = nodes[nodoActual].descriptor;
 			uint validMask = desc & 0xFF;
 			uint leafMask = (desc >> 8) & 0xFF;
@@ -104,10 +106,35 @@ kernel void compute_main(
 			if ((leafMask & mascaraOctante) != 0 && colorFinal.a > 0.0) {
 				// ¡Chocamos con la pared de la cueva!
 
+				// Esquinas de la caja del vóxel/nodo hoja que golpeamos, para poder
+				// deducir a qué cara pertenece rayPos (no guardamos normales, así que
+				// las derivamos geométricamente de la caja del octante).
+				float3 boxMin = posCajaMin + float3(bitX ? halfSize : 0.0, bitY ? halfSize : 0.0, bitZ ? halfSize : 0.0);
+				float3 boxMax = boxMin + halfSize;
 
+				float3 distToMin = rayPos - boxMin;
+				float3 distToMax = boxMax - rayPos;
 
-				// Oclusión ambiental falsa basada en distancia/pasos
-				colorFinal.rgb *= (1.0 - (float(paso) / float(maxSteps)));
+				float3 normal = float3(-1.0, 0.0, 0.0);
+				float minDist = distToMin.x;
+				if (distToMin.y < minDist) { minDist = distToMin.y; normal = float3(0.0, -1.0, 0.0); }
+				if (distToMin.z < minDist) { minDist = distToMin.z; normal = float3(0.0, 0.0, -1.0); }
+				if (distToMax.x < minDist) { minDist = distToMax.x; normal = float3(1.0, 0.0, 0.0); }
+				if (distToMax.y < minDist) { minDist = distToMax.y; normal = float3(0.0, 1.0, 0.0); }
+				if (distToMax.z < minDist) { minDist = distToMax.z; normal = float3(0.0, 0.0, 1.0); }
+
+				// Luz "linterna" pegada a la cámara: como el rayo parte de la cámara,
+				// la dirección hacia la luz desde el punto de impacto es siempre -rayDir.
+				float ambient = 0.12;
+				float diffuse = max(dot(normal, -rayDir), 0.0);
+				float lighting = ambient + (1.0 - ambient) * diffuse;
+				colorFinal.rgb *= lighting;
+
+				// Atenuación por distancia (niebla) para poder juzgar profundidad
+				float distanciaRecorrida = float(paso) * stepSize;
+				float atenuacion = clamp(1.0 - distanciaRecorrida / (float(maxSteps) * stepSize), 0.0, 1.0);
+				colorFinal.rgb *= atenuacion;
+
 				// Corrección gamma para evitar que los colores se vean demasiado oscuros
 				colorFinal.rgb = pow(colorFinal.rgb, float3(1.0 / gamma));
 				hit = true;

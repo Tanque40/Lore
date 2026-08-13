@@ -70,6 +70,10 @@ void GameLayer::OnImGuiRender() {
 					m_Grid3DString = m_Grid3D.ToString();
 
 					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
+
+					m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
+					m_MaxLevels = std::log2(m_WorldSize);
+
 					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
 					m_VoxelGrid.Clear();
 
@@ -78,6 +82,22 @@ void GameLayer::OnImGuiRender() {
 					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
 
 					svoBuffer->SetData(m_SVOData.data(), bufferSize);
+
+					// Fuera del laberinto todo es piedra sólida: la cámara tiene que
+					// arrancar DENTRO del primer pasillo tallado (la celda de entrada),
+					// no en su posición libre anterior, o quedaría embebida en roca.
+					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
+					glm::vec3 entryVoxelCenter = { 1.5f, 1.5f, 1.5f };
+					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
+					if (entryCell->IsLinked(entryCell->GetEast())) {
+						lookDir = { 1.0f, 0.0f, 0.0f };
+					} else if (entryCell->IsLinked(entryCell->GetUp())) {
+						lookDir = { 0.0f, 1.0f, 0.0f };
+					} else if (entryCell->IsLinked(entryCell->GetSouth())) {
+						lookDir = { 0.0f, 0.0f, 1.0f };
+					}
+					m_Camera.SetPosition(entryVoxelCenter);
+					m_Camera.SetDirection(lookDir);
 				}
 
 				ImGui::EndTable();

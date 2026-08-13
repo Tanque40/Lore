@@ -24,6 +24,8 @@ namespace Lore {
 			glm::vec3 cameraRight;
 			float _pad3 = 0;
 			float fov;
+			float worldSize = 256.0f;
+			float maxLevels = 8.0f;
 		};
 
 

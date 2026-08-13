@@ -78,6 +78,10 @@ namespace Lore {
 	void MetalComputeShader::SetUniform1f(const std::string& name, float value) {
 		if (name == "u_Fov") {
 			m_Uniforms.fov = value;
+		} else if (name == "u_WorldSize") {
+			m_Uniforms.worldSize = value;
+		} else if (name == "u_MaxLevels") {
+			m_Uniforms.maxLevels = value;
 		}
 	}
 

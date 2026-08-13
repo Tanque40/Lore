@@ -38,6 +38,9 @@ void GameLayer::OnAttach() {
 
 	m_VoxelGridString = m_VoxelGrid.ToString();
 
+	m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
+	m_MaxLevels = std::log2(m_WorldSize);
+
 	m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
 
 	uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
@@ -73,6 +76,8 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	m_ComputeShader->SetUniform3f("u_CameraUp", m_Camera.GetUp());
 	m_ComputeShader->SetUniform3f("u_CameraRight", m_Camera.GetRight());
 	m_ComputeShader->SetUniform1f("u_Fov", glm::radians(m_Camera.GetFov()));
+	m_ComputeShader->SetUniform1f("u_WorldSize", m_WorldSize);
+	m_ComputeShader->SetUniform1f("u_MaxLevels", m_MaxLevels);
 
 	// 2. Dispatch compute shader
 	uint32_t groupsX = (m_Width + 15) / 16;

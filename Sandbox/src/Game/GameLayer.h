@@ -32,6 +32,11 @@ private:
 	std::vector<SVO::SVONode> m_SVOData;
 	std::shared_ptr<Lore::StorageBuffer> svoBuffer;
 
+	// Tamaño real y profundidad del octree actualmente subido a la GPU (el shader
+	// necesita esto para saber cuántos niveles bajar al recorrer el SVO).
+	float m_WorldSize = 256.0f;
+	float m_MaxLevels = 8.0f;
+
 	// Compute-First pipeline resources
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;

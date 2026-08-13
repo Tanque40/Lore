@@ -35,26 +35,30 @@ namespace SVO {
 	VoxelGrid VoxelGrid::CastToVoxels(Maze::Grid3D* laberinto, int gridSize) {
 		uint32_t newCellsPerAxis = 3;
 
-		uint32_t i = 8;
-		while (std::pow(2, i) < gridSize) {
+		// El laberinto debe caber dentro del grid: cada celda ocupa un bloque de
+		// newCellsPerAxis^3, así que el grid necesita al menos esa extensión.
+		uint32_t requiredExtent = std::max({ laberinto->GetColumns(), laberinto->GetLevels(), laberinto->GetRows() }) * newCellsPerAxis;
+		gridSize = std::max(gridSize, static_cast<int>(requiredExtent));
+
+		uint32_t i = 0;
+		while (static_cast<uint32_t>(std::pow(2, i)) < static_cast<uint32_t>(gridSize)) {
 			i++;
 		}
 
-		gridSize = static_cast<uint32_t>(std::pow(2, i + 1));
+		gridSize = static_cast<uint32_t>(std::pow(2, i));
 
-		// Asumiremos un VoxelGrid de tamaño 64 para este ejemplo
 		VoxelGrid vGrid(gridSize);
 
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<unsigned int> distrib(0, 0xFFFFFFFF);
+		// Material constante de "piedra sólida" (RGBA empaquetado, alpha != 0 para que el
+		// ray marcher lo trate como opaco). Debe ser constante para que el SVOBuilder pueda
+		// fusionar bloques sólidos en vez de tener que subdividir hasta el voxel individual.
+		constexpr uint32_t kSolidStoneMaterial = 0xFF808080;
 
-		// 1. Llenar TODO el mundo de piedra (Material = 1)
+		// 1. Llenar TODO el mundo de piedra sólida
 		for (uint32_t x = 0; x < gridSize; x++) {
 			for (uint32_t y = 0; y < gridSize; y++) {
 				for (uint32_t z = 0; z < gridSize; z++) {
-					uint32_t material = distrib(gen);
-					vGrid.SetVoxel(x, y, z, material); // 1 = Piedra sólida
+					vGrid.SetVoxel(x, y, z, kSolidStoneMaterial);
 				}
 			}
 		}
