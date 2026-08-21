@@ -86,6 +86,8 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	m_ComputeShader->SetUniform1f("u_WorldSize", m_WorldSize);
 	m_ComputeShader->SetUniform1f("u_MaxLevels", m_MaxLevels);
 	m_ComputeShader->SetUniform1f("u_VoxelScale", m_VoxelScale);
+	m_ComputeShader->SetUniform1f("u_LodPixelThreshold", m_LodPixelThreshold);
+	m_ComputeShader->SetUniform1f("u_LodCoverageThreshold", m_LodCoverageThreshold);
 
 	// 2. Dispatch compute shader
 	uint32_t groupsX = (m_Width + 15) / 16;

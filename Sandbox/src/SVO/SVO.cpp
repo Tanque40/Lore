@@ -2,6 +2,23 @@
 
 #include "SVO/SVO.h"
 
+namespace {
+
+	// Mismo layout de bits que DecodificarColor en los shaders: r=bits0-7, g=bits8-15,
+	// b=bits16-23, a=bits24-31.
+	inline void UnpackRGB(uint32_t material, uint32_t& r, uint32_t& g, uint32_t& b) {
+		r = material & 0xFF;
+		g = (material >> 8) & 0xFF;
+		b = (material >> 16) & 0xFF;
+	}
+
+	inline uint32_t PackRGB(uint32_t r, uint32_t g, uint32_t b) {
+		// Alpha siempre opaco: sólo se llama con contenido sólido de por medio.
+		return 0xFF000000u | (b << 16) | (g << 8) | r;
+	}
+
+}
+
 namespace SVO {
 
 	std::vector<SVONode> SVOBuilder::Build(const VoxelGrid& grid) {
@@ -42,13 +59,14 @@ namespace SVO {
 		// PASO 2: Casos Base (Poda del árbol)
 		// ---------------------------------------------------------
 		if (isAllAir) {
-			return { true, false, 0 }; // Es aire puro
+			return { true, false, 0, 0, 0 }; // Es aire puro
 		}
 
 		if (isAllSolid && firstVoxel != 0) {
 			// Es un bloque sólido. Guardamos el material en el nodo.
 			m_Nodes[nodeIndex].material = firstVoxel;
-			return { false, true, firstVoxel };
+			uint64_t voxelCount = static_cast<uint64_t>(size) * size * size;
+			return { false, true, firstVoxel, firstVoxel, voxelCount };
 		}
 
 		// ---------------------------------------------------------
@@ -66,6 +84,13 @@ namespace SVO {
 
 		uint8_t validMask = 0;
 		uint8_t leafMask = 0;
+
+		// Acumuladores para el color promedio ponderado del subárbol completo (no sólo de
+		// los hijos directos): le permite al ray marcher de la GPU renderizar este nodo
+		// como un único bloque "impostor" razonable cuando el LOD por distancia decide no
+		// bajar hasta el detalle exacto.
+		uint64_t totalSolidCount = 0;
+		uint64_t rSum = 0, gSum = 0, bSum = 0;
 
 		// Recorremos los 8 octantes
 		for (int i = 0; i < 8; ++i) {
@@ -88,6 +113,15 @@ namespace SVO {
 			if (childResult.isSolidLeaf) {
 				leafMask |= (1 << i);
 			}
+
+			if (childResult.solidCount > 0) {
+				uint32_t r, g, b;
+				UnpackRGB(childResult.avgMaterial, r, g, b);
+				rSum += static_cast<uint64_t>(r) * childResult.solidCount;
+				gSum += static_cast<uint64_t>(g) * childResult.solidCount;
+				bSum += static_cast<uint64_t>(b) * childResult.solidCount;
+				totalSolidCount += childResult.solidCount;
+			}
 		}
 
 		// ---------------------------------------------------------
@@ -97,11 +131,24 @@ namespace SVO {
 		descriptor |= (validMask & 0xFF);       // Bits 0-7
 		descriptor |= ((leafMask & 0xFF) << 8); // Bits 8-15
 
+		uint32_t avgMaterial = 0;
+		if (totalSolidCount > 0) {
+			avgMaterial = PackRGB(
+				static_cast<uint32_t>(rSum / totalSolidCount),
+				static_cast<uint32_t>(gSum / totalSolidCount),
+				static_cast<uint32_t>(bSum / totalSolidCount));
+
+			uint64_t totalVoxels = static_cast<uint64_t>(size) * size * size;
+			uint32_t coverage = static_cast<uint32_t>((totalSolidCount * 255ull) / totalVoxels);
+			descriptor |= ((coverage & 0xFF) << 16); // Bits 16-23
+		}
+
 		m_Nodes[nodeIndex].descriptor = descriptor;
 		m_Nodes[nodeIndex].childIndex = baseChildIndex; // Rango completo de 32 bits, sin truncar
+		m_Nodes[nodeIndex].material = avgMaterial;       // Color promedio del subárbol, para el LOD
 
 		// Devolvemos que este nodo no es ni aire puro ni una hoja sólida (es una rama)
-		return { false, false, 0 };
+		return { false, false, 0, avgMaterial, totalSolidCount };
 	}
 
 }

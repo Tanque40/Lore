@@ -1,8 +1,34 @@
 #include "sndbxpch.h"
 
+#include <iomanip>
+#include <sstream>
+
 #include "SVO/VoxelGrid.h"
 
 namespace {
+
+	// Convierte un tamaño en bytes a la unidad más legible (bytes/KB/MB/GB), escalando por
+	// 1024 en cada paso. Por debajo de 1024 bytes se muestra el entero exacto sin decimales;
+	// a partir de KB se usan 2 decimales para no perder precisión al redondear.
+	std::string FormatBytesHumanReadable(uint64_t bytes) {
+		static constexpr const char* kUnits[] = { "bytes", "KB", "MB", "GB" };
+		constexpr size_t kUnitCount = sizeof(kUnits) / sizeof(kUnits[0]);
+
+		if (bytes < 1024) {
+			return std::to_string(bytes) + " " + kUnits[0];
+		}
+
+		double value = static_cast<double>(bytes);
+		size_t unitIndex = 0;
+		while (value >= 1024.0 && unitIndex + 1 < kUnitCount) {
+			value /= 1024.0;
+			unitIndex++;
+		}
+
+		std::ostringstream oss;
+		oss << std::fixed << std::setprecision(2) << value << " " << kUnits[unitIndex];
+		return oss.str();
+	}
 
 	// Ruido de valor 3D con aritmética escalar simple. Los generadores de espeleotemas
 	// (estalactitas/estalagmitas) necesitan millones de muestras de ruido para las estrías
@@ -129,7 +155,7 @@ namespace SVO {
 
 	std::string VoxelGrid::ToString() const {
 		std::string result;
-		uint32_t blocksCount = 0;
+		uint64_t blocksCount = 0;
 
 		for (uint32_t z = 0; z < m_Size; z++) {
 			//result += "Layer " + std::to_string(z) + ":\n";
@@ -148,9 +174,14 @@ namespace SVO {
 			//result += "\n";
 		}
 
-		result += "Total voxel grid size: " + std::to_string(m_Size * m_Size * m_Size) + "\n";
+		// m_Data siempre tiene m_Size^3 elementos (denso, incluye aire), así que la memoria
+		// real ocupada depende del tamaño del grid, no de cuántos bloques son sólidos.
+		uint64_t totalVoxels = static_cast<uint64_t>(m_Data.size());
+		uint64_t memoryBytes = totalVoxels * sizeof(uint32_t);
+
+		result += "Total voxel grid size: " + std::to_string(totalVoxels) + "\n";
 		result += "Total non air blocks: " + std::to_string(blocksCount) + "\n";
-		result += "Memory usage: " + std::to_string(blocksCount * sizeof(uint32_t)) + " bytes\n";
+		result += "Memory usage: " + FormatBytesHumanReadable(memoryBytes) + "\n";
 
 		return result;
 	}

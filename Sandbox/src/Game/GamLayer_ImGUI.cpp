@@ -133,6 +133,16 @@ void GameLayer::OnImGuiRender() {
 		ImGui::EndChild();
 	}
 
+	if (!ImGui::CollapsingHeader("LOD")) {
+		ImGui::BeginChild("LOD Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+		ImGui::TextWrapped("El ray marcher deja de bajar por el octree cuando un nodo ya se ve mas chico en pantalla que este umbral, y lo dibuja como un bloque con el color promedio de su subarbol en vez de resolver el detalle exacto. Mas lejos = nodos mas grandes cortados antes = menos resolucion visible; mas cerca = se sigue bajando hasta el detalle fino.");
+		ImGui::SliderFloat("Umbral LOD (tamano/distancia)", &m_LodPixelThreshold, 0.0f, 0.2f, "%.4f");
+		ImGui::TextWrapped("0 desactiva el LOD (siempre se baja hasta el fondo del octree).");
+		ImGui::SliderFloat("Cobertura minima solida", &m_LodCoverageThreshold, 0.0f, 1.0f, "%.2f");
+		ImGui::TextWrapped("Que tan solido debe ser un nodo lejano para dibujarse opaco en vez de saltarse como aire. Bajarlo hace que estructuras finas/delgadas se sigan distinguiendo de lejos, a costa de infladas.");
+		ImGui::EndChild();
+	}
+
 	if (!ImGui::CollapsingHeader("Voxel Grid")) {
 		ImGui::BeginChild("Voxel Grid Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
 

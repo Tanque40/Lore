@@ -48,6 +48,17 @@ private:
 	// más pequeños/finos sin cambiar cuántos hay ni el tamaño del laberinto en índices.
 	float m_VoxelScale = 0.25f;
 
+	// LOD por distancia (ver TraceRay en los shaders): a qué fracción tamaño/distancia se
+	// deja de bajar por el octree y se renderiza el nodo como un bloque aproximado en vez
+	// de resolver el detalle exacto. 0 desactiva el LOD (siempre baja hasta el fondo).
+	float m_LodPixelThreshold = 0.02f;
+	// Cobertura mínima (0-1) de sólido en el subárbol de un nodo para que, al cortar el
+	// descenso por LOD, se dibuje como bloque opaco en vez de tratarse como aire. Bajo a
+	// propósito: geometría delgada (cáscaras, paredes finas) tiene poca cobertura en un
+	// bloque grande, y un umbral alto (probado con 0.3) la hace desaparecer por completo
+	// en vez de verse como un bloque aproximado.
+	float m_LodCoverageThreshold = 0.05f;
+
 	// Compute-First pipeline resources
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;

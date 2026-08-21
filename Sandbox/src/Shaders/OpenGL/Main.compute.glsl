@@ -5,7 +5,12 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 // Estructuras
 struct SVONode {
-	uint descriptor; // Bits 0-7: Valid, Bits 8-15: Leaf (bits 16-31 sin usar)
+	// Bits 0-7: Valid, Bits 8-15: Leaf, Bits 16-23: Coverage (bits 24-31 sin usar).
+	// Coverage es la fracción (0-255) de vóxeles sólidos en TODO el subárbol de este nodo;
+	// material en un nodo rama guarda el color PROMEDIO de ese subárbol. Ambos sólo importan
+	// para el LOD por distancia (ver TraceRay): renderizar el nodo como un bloque aproximado
+	// en vez de bajar hasta el detalle exacto cuando ya está lejos.
+	uint descriptor;
 	uint childIndex; // Rango completo de 32 bits (no empaquetado en descriptor)
 	uint material;
 };
@@ -25,6 +30,8 @@ uniform float u_Fov;
 uniform float u_WorldSize;
 uniform float u_MaxLevels;
 uniform float u_VoxelScale;
+uniform float u_LodPixelThreshold;
+uniform float u_LodCoverageThreshold;
 
 // Función auxiliar para decodificar color
 vec4 DecodificarColor(uint material) {
@@ -49,10 +56,42 @@ float AABBExitT(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
 	return min(tx, min(ty, tz));
 }
 
+// Normal aproximada de la caja de un nodo/vóxel a partir de a qué cara está más cerca el
+// punto de impacto (no hay normales guardadas por nodo). Se reusa tanto para un impacto
+// exacto contra una hoja como para un impacto "impostor" de LOD contra un nodo rama.
+vec3 BoxNormal(vec3 indexPos, vec3 boxMin, vec3 boxMax) {
+	vec3 distToMin = indexPos - boxMin;
+	vec3 distToMax = boxMax - indexPos;
+
+	vec3 normal = vec3(-1.0, 0.0, 0.0);
+	float minDist = distToMin.x;
+	if (distToMin.y < minDist) { minDist = distToMin.y; normal = vec3(0.0, -1.0, 0.0); }
+	if (distToMin.z < minDist) { minDist = distToMin.z; normal = vec3(0.0, 0.0, -1.0); }
+	if (distToMax.x < minDist) { minDist = distToMax.x; normal = vec3(1.0, 0.0, 0.0); }
+	if (distToMax.y < minDist) { minDist = distToMax.y; normal = vec3(0.0, 1.0, 0.0); }
+	if (distToMax.z < minDist) { minDist = distToMax.z; normal = vec3(0.0, 0.0, 1.0); }
+	return normal;
+}
+
+// Luz "linterna" + niebla + gamma para un color de impacto ya resuelto. Compartido entre
+// el impacto exacto contra una hoja y el impacto aproximado de LOD contra un nodo rama.
+vec4 ShadeHit(vec4 baseColor, vec3 normal, vec3 rayDir, float distanciaRecorrida, float maxRenderDistance, float gamma) {
+	float ambient = 0.12;
+	float diffuse = max(dot(normal, -rayDir), 0.0);
+	float lighting = ambient + (1.0 - ambient) * diffuse;
+	baseColor.rgb *= lighting;
+
+	float atenuacion = clamp(1.0 - distanciaRecorrida / maxRenderDistance, 0.0, 1.0);
+	baseColor.rgb *= atenuacion;
+
+	baseColor.rgb = pow(baseColor.rgb, vec3(1.0 / gamma));
+	return baseColor;
+}
+
 // Traza un único rayo contra el SVO y devuelve el color final (con luz y niebla ya
 // aplicadas). Separado de main() para poder llamarlo varias veces por píxel
 // (supersampling) sin duplicar la lógica.
-vec4 TraceRay(vec3 rayOrigin, vec3 rayDir, float worldSizeIndex, int maxLevels, float voxelScale) {
+vec4 TraceRay(vec3 rayOrigin, vec3 rayDir, float worldSizeIndex, int maxLevels, float voxelScale, float lodPixelThreshold, float lodCoverageThreshold) {
 	float gamma = 2.2;
 	float worldSizeWorld = worldSizeIndex * voxelScale; // Límite del mundo en unidades de mundo
 	float maxRenderDistance = 40.0; // Distancia (en unidades de mundo) a la que todo se pierde en niebla
@@ -87,7 +126,31 @@ vec4 TraceRay(vec3 rayOrigin, vec3 rayDir, float worldSizeIndex, int maxLevels, 
 			uint desc = nodes[nodoActual].descriptor;
 			uint validMask = desc & 0xFFu;
 			uint leafMask = (desc >> 8) & 0xFFu;
+			uint coverage = (desc >> 16) & 0xFFu;
 			uint childPtr = nodes[nodoActual].childIndex;
+
+			// LOD por distancia: si la caja de este nodo ya se ve más chica en pantalla que
+			// lodPixelThreshold (ángulo aproximado, tamaño/distancia) no vale la pena bajar
+			// más — se resolvería un detalle que a esa distancia no se distinguiría. En vez
+			// de eso tratamos TODO el nodo como un único bloque usando el color promedio de
+			// su subárbol (si tiene suficiente cobertura sólida) o como aire (si no).
+			// nivel > 0 evita colapsar la raíz entera en un solo bloque.
+			float nodeWorldSize = tamanoActual * voxelScale;
+			if (nivel > 0 && lodPixelThreshold > 0.0 && nodeWorldSize < distanciaRecorrida * lodPixelThreshold) {
+				vec3 boxMax = posCajaMin + tamanoActual;
+				if (float(coverage) > lodCoverageThreshold * 255.0) {
+					vec3 normal = BoxNormal(indexPos, posCajaMin, boxMax);
+					colorFinal = ShadeHit(DecodificarColor(nodes[nodoActual].material), normal, rayDir, distanciaRecorrida, maxRenderDistance, gamma);
+					hit = true;
+				} else {
+					vec3 emptyMinWorld = posCajaMin * voxelScale;
+					vec3 emptyMaxWorld = boxMax * voxelScale;
+					float tExit = AABBExitT(rayPos, rayDir, emptyMinWorld, emptyMaxWorld);
+					rayPos += rayDir * max(tExit + epsilon, epsilon);
+					avanzo = true;
+				}
+				break;
+			}
 
 			float halfSize = tamanoActual * 0.5;
 			vec3 centro = posCajaMin + halfSize;
@@ -107,33 +170,8 @@ vec4 TraceRay(vec3 rayOrigin, vec3 rayDir, float worldSizeIndex, int maxLevels, 
 			if ((leafMask & mascaraOctante) != 0u) {
 				vec4 hitColor = DecodificarColor(nodes[indiceHijo].material);
 				if (hitColor.a > 0.0) {
-					// Esquinas de la caja del vóxel/nodo hoja que golpeamos, para derivar
-					// la normal geométricamente (no se almacenan normales por nodo).
-					vec3 distToMin = indexPos - childBoxMin;
-					vec3 distToMax = childBoxMax - indexPos;
-
-					vec3 normal = vec3(-1.0, 0.0, 0.0);
-					float minDist = distToMin.x;
-					if (distToMin.y < minDist) { minDist = distToMin.y; normal = vec3(0.0, -1.0, 0.0); }
-					if (distToMin.z < minDist) { minDist = distToMin.z; normal = vec3(0.0, 0.0, -1.0); }
-					if (distToMax.x < minDist) { minDist = distToMax.x; normal = vec3(1.0, 0.0, 0.0); }
-					if (distToMax.y < minDist) { minDist = distToMax.y; normal = vec3(0.0, 1.0, 0.0); }
-					if (distToMax.z < minDist) { minDist = distToMax.z; normal = vec3(0.0, 0.0, 1.0); }
-
-					// Luz "linterna" pegada a la cámara: como el rayo parte de la cámara,
-					// la dirección hacia la luz desde el punto de impacto es siempre -rayDir.
-					float ambient = 0.12;
-					float diffuse = max(dot(normal, -rayDir), 0.0);
-					float lighting = ambient + (1.0 - ambient) * diffuse;
-					hitColor.rgb *= lighting;
-
-					// Atenuación por distancia (niebla) para poder juzgar profundidad
-					float atenuacion = clamp(1.0 - distanciaRecorrida / maxRenderDistance, 0.0, 1.0);
-					hitColor.rgb *= atenuacion;
-
-					hitColor.rgb = pow(hitColor.rgb, vec3(1.0 / gamma));
-
-					colorFinal = hitColor;
+					vec3 normal = BoxNormal(indexPos, childBoxMin, childBoxMax);
+					colorFinal = ShadeHit(hitColor, normal, rayDir, distanciaRecorrida, maxRenderDistance, gamma);
 					hit = true;
 					break;
 				}
@@ -178,6 +216,8 @@ void main() {
 	float worldSize = u_WorldSize;
 	int maxLevels = int(u_MaxLevels);
 	float voxelScale = u_VoxelScale;
+	float lodPixelThreshold = u_LodPixelThreshold;
+	float lodCoverageThreshold = u_LodCoverageThreshold;
 
 	// Supersampling 2x2: disparamos 4 rayos con sub-desplazamiento dentro del píxel y
 	// promediamos el color, para suavizar los bordes en diente de sierra de las
@@ -195,7 +235,7 @@ void main() {
 				uv.x * u_CameraRight * u_Fov +
 				uv.y * u_CameraUp * u_Fov);
 
-			colorAccum += TraceRay(u_CameraPos, rayDir, worldSize, maxLevels, voxelScale);
+			colorAccum += TraceRay(u_CameraPos, rayDir, worldSize, maxLevels, voxelScale, lodPixelThreshold, lodCoverageThreshold);
 		}
 	}
 

@@ -84,6 +84,10 @@ namespace Lore {
 			m_Uniforms.maxLevels = value;
 		} else if (name == "u_VoxelScale") {
 			m_Uniforms.voxelScale = value;
+		} else if (name == "u_LodPixelThreshold") {
+			m_Uniforms.lodPixelThreshold = value;
+		} else if (name == "u_LodCoverageThreshold") {
+			m_Uniforms.lodCoverageThreshold = value;
 		}
 	}
 
