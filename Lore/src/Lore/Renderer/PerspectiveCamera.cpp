@@ -42,6 +42,21 @@ namespace Lore {
 		UpdateCameraVectors();
 	}
 
+	void PerspectiveCamera::SetDirection(const glm::vec3& direction) {
+		// UpdateCameraVectors() reconstruye m_CameraDirection a partir de m_Yaw/m_Pitch,
+		// así que hay que derivar esos ángulos de la dirección pedida o quedaría pisada
+		// por el valor anterior de yaw/pitch en la siguiente llamada.
+		glm::vec3 d = glm::normalize(direction);
+		m_Pitch = glm::degrees(asin(glm::clamp(d.y, -1.0f, 1.0f)));
+		m_Yaw = glm::degrees(atan2(d.z, d.x));
+
+		// Igual que en ProcessMouseMovement: evita el pitch a +/-90 exactos, donde
+		// front y m_CameraUp quedan paralelos y cross() colapsa a un vector nulo.
+		m_Pitch = glm::clamp(m_Pitch, -89.0f, 89.0f);
+
+		UpdateCameraVectors();
+	}
+
 	void PerspectiveCamera::ProcessMouseScroll(float yOffset) {
 		m_Fov -= (float)yOffset;
 		if (m_Fov < 1.0f)

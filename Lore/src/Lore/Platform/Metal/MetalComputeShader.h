@@ -26,6 +26,7 @@ namespace Lore {
 			float fov;
 			float worldSize = 256.0f;
 			float maxLevels = 8.0f;
+			float voxelScale = 1.0f;
 		};
 
 

@@ -33,7 +33,7 @@ namespace SVO {
 	}
 
 	VoxelGrid VoxelGrid::CastToVoxels(Maze::Grid3D* laberinto, int gridSize) {
-		uint32_t newCellsPerAxis = 3;
+		uint32_t newCellsPerAxis = kCellsPerAxis;
 
 		// El laberinto debe caber dentro del grid: cada celda ocupa un bloque de
 		// newCellsPerAxis^3, así que el grid necesita al menos esa extensión.
@@ -63,35 +63,62 @@ namespace SVO {
 			}
 		}
 
-		// 2. Esculpir los   pasillos iterando sobre el Grid3D
+		// Ancho del pasillo/cámara en vóxeles de índice (misma proporción que la versión
+		// anterior de 1 vóxel de ancho en un bloque de 3, pero escalado a la resolución
+		// actual) y desplazamiento para centrarlo dentro del bloque de la celda.
+		uint32_t corridorWidth = newCellsPerAxis / 3;
+		uint32_t chamberOffset = (newCellsPerAxis - corridorWidth) / 2;
+
+		auto carveBox = [&](uint32_t x0, uint32_t x1, uint32_t y0, uint32_t y1, uint32_t z0, uint32_t z1) {
+			for (uint32_t x = x0; x < x1; x++)
+				for (uint32_t y = y0; y < y1; y++)
+					for (uint32_t z = z0; z < z1; z++)
+						vGrid.SetVoxel(x, y, z, 0);
+			};
+
+		// 2. Esculpir los pasillos iterando sobre el Grid3D
 		laberinto->EachCell([&](Maze::Cell3D* cell) {
 
-			// Coordenada base del bloque 3x3x3 en el mundo de vóxeles
+			// Coordenada base del bloque de la celda en el mundo de vóxeles
 			uint32_t bx = cell->GetColumn() * newCellsPerAxis;
 			uint32_t by = cell->GetLevel() * newCellsPerAxis;
 			uint32_t bz = cell->GetRow() * newCellsPerAxis;
 
-			// Esculpir el centro (aire = 0)
-			vGrid.SetVoxel(bx + 1, by + 1, bz + 1, 0);
+			// Cámara central de la celda
+			carveBox(bx + chamberOffset, bx + chamberOffset + corridorWidth,
+				by + chamberOffset, by + chamberOffset + corridorWidth,
+				bz + chamberOffset, bz + chamberOffset + corridorWidth);
 
-			// Esculpir pasillos si hay enlaces
+			// Pasillos hacia los vecinos enlazados
 			if (cell->IsLinked(cell->GetEast())) {
-				vGrid.SetVoxel(bx + 2, by + 1, bz + 1, 0);
+				carveBox(bx + chamberOffset + corridorWidth, bx + newCellsPerAxis,
+					by + chamberOffset, by + chamberOffset + corridorWidth,
+					bz + chamberOffset, bz + chamberOffset + corridorWidth);
 			}
 			if (cell->IsLinked(cell->GetWest())) {
-				vGrid.SetVoxel(bx + 0, by + 1, bz + 1, 0);
+				carveBox(bx, bx + chamberOffset,
+					by + chamberOffset, by + chamberOffset + corridorWidth,
+					bz + chamberOffset, bz + chamberOffset + corridorWidth);
 			}
 			if (cell->IsLinked(cell->GetSouth())) { // Sur suele ser +Z
-				vGrid.SetVoxel(bx + 1, by + 1, bz + 2, 0);
+				carveBox(bx + chamberOffset, bx + chamberOffset + corridorWidth,
+					by + chamberOffset, by + chamberOffset + corridorWidth,
+					bz + chamberOffset + corridorWidth, bz + newCellsPerAxis);
 			}
 			if (cell->IsLinked(cell->GetNorth())) {
-				vGrid.SetVoxel(bx + 1, by + 1, bz + 0, 0);
+				carveBox(bx + chamberOffset, bx + chamberOffset + corridorWidth,
+					by + chamberOffset, by + chamberOffset + corridorWidth,
+					bz, bz + chamberOffset);
 			}
 			if (cell->IsLinked(cell->GetUp())) {
-				vGrid.SetVoxel(bx + 1, by + 2, bz + 1, 0);
+				carveBox(bx + chamberOffset, bx + chamberOffset + corridorWidth,
+					by + chamberOffset + corridorWidth, by + newCellsPerAxis,
+					bz + chamberOffset, bz + chamberOffset + corridorWidth);
 			}
 			if (cell->IsLinked(cell->GetDown())) {
-				vGrid.SetVoxel(bx + 1, by + 0, bz + 1, 0);
+				carveBox(bx + chamberOffset, bx + chamberOffset + corridorWidth,
+					by, by + chamberOffset,
+					bz + chamberOffset, bz + chamberOffset + corridorWidth);
 			}
 
 			});

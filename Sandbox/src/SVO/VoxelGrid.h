@@ -13,6 +13,13 @@ namespace SVO {
 		uint32_t m_Size; // Debe ser potencia de 2 (ej. 64, 128)
 
 	public:
+		// Cuántos vóxeles de índice ocupa cada celda del laberinto por eje. Junto con
+		// el uniform u_VoxelScale del renderer (mundo = índice * voxelScale) define el
+		// tamaño físico real de una celda; subir este número sin tocar voxelScale sólo
+		// añade resolución (vóxeles más finos) sin cambiar el tamaño del laberinto.
+		static constexpr uint32_t kCellsPerAxis = 12;
+
+
 		VoxelGrid(uint32_t size) : m_Size(size) {
 			// Inicializar todo como aire (0)
 			m_Data.resize(size * size * size, 0);

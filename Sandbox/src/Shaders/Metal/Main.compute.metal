@@ -16,6 +16,7 @@ struct Uniforms {
 	float fov;
 	float worldSize;
 	float maxLevels;
+	float voxelScale;
 };
 
 // Función auxiliar para decodificar color
@@ -31,56 +32,52 @@ inline float4 DecodificarColor(uint material) {
 	return float4(r, g, b, 1.0f);
 }
 
-// 2. El Kernel Principal
-kernel void compute_main(
-	texture2d<float, access::write> outputTexture [[texture(0)]],
-	device const SVONode* nodes [[buffer(0)]],
-	constant Uniforms& uniforms [[buffer(1)]],
-	uint2 gridPos [[thread_position_in_grid]] )
-{
+// Distancia a la que el rayo sale de una caja AABB, asumiendo que "origin" ya está
+// dentro de ella. Se usa para saltar de un salto todo un nodo vacío del octree en
+// vez de avanzar a pasos fijos pequeños (ray marching adaptativo).
+inline float AABBExitT(float3 origin, float3 dir, float3 boxMin, float3 boxMax) {
+	float tx = dir.x > 0.0 ? (boxMax.x - origin.x) / dir.x : (dir.x < 0.0 ? (boxMin.x - origin.x) / dir.x : 1e30f);
+	float ty = dir.y > 0.0 ? (boxMax.y - origin.y) / dir.y : (dir.y < 0.0 ? (boxMin.y - origin.y) / dir.y : 1e30f);
+	float tz = dir.z > 0.0 ? (boxMax.z - origin.z) / dir.z : (dir.z < 0.0 ? (boxMin.z - origin.z) / dir.z : 1e30f);
+	return min(tx, min(ty, tz));
+}
+
+// Traza un único rayo contra el SVO y devuelve el color final (con luz e iluminación
+// ya aplicadas). Separado del kernel para poder llamarlo varias veces por píxel
+// (supersampling) sin duplicar la lógica.
+inline float4 TraceRay(float3 rayOrigin, float3 rayDir, device const SVONode* nodes, float worldSizeIndex, int maxLevels, float voxelScale) {
 	float gamma = 2.2;
+	float worldSizeWorld = worldSizeIndex * voxelScale; // Límite del mundo en unidades de mundo
+	float maxRenderDistance = 40.0f; // Distancia (en unidades de mundo) a la que todo se pierde en niebla
+	float epsilon = max(voxelScale * 0.01f, 0.0005f); // Empujoncito para no quedar pegado al borde de una caja
 
-	// Configuración del Ray Marching
-	float worldSize = uniforms.worldSize; // Tamaño real del VoxelGrid/SVO subido a la GPU
-	int maxLevels = int(uniforms.maxLevels); // log2(worldSize): profundidad real del octree
-	float stepSize = 0.1f;  // Qué tan pequeño es el paso (ej. 0.25)
-	int maxSteps = 250;    // Máximo de pasos antes de rendirse (ej. 400)
-
-	// Límite de pantalla
-	if (gridPos.x >= outputTexture.get_width() || gridPos.y >= outputTexture.get_height()) {
-		return;
-	}
-
-	// Calcular dirección del rayo para este píxel
-	float2 dims = float2(outputTexture.get_width(), outputTexture.get_height());
-	float2 uv = (float2(gridPos) / dims) * 2.0 - 1.0;
-	uv.x *= dims.x / dims.y;
-
-	float3 rayDir = normalize(uniforms.cameraDir +
-		uv.x * uniforms.cameraRight * uniforms.fov +
-		uv.y * uniforms.cameraUp * uniforms.fov);
-
-	// Posición inicial del rayo (avanzaremos esta variable)
-	float3 rayPos = uniforms.cameraPos;
-
+	float3 rayPos = rayOrigin;
 	float4 colorFinal = float4(0.05, 0.05, 0.08, 1.0); // Color de fondo (oscuridad)
 	bool hit = false;
 
-	// ====================================================
-	// BUCLE DE AVANCE (RAY MARCHING)
-	// ====================================================
+	const int maxSteps = 128; // Salvaguarda: ahora cada paso puede saltar un nodo entero, no un texel fijo
 	for (int paso = 0; paso < maxSteps; paso++) {
 
 		// 1. Verificar si el rayo se salió del mundo (Culling de límites)
 		if (rayPos.x < 0.0 || rayPos.y < 0.0 || rayPos.z < 0.0 ||
-			rayPos.x > worldSize || rayPos.y > worldSize || rayPos.z > worldSize) {
+			rayPos.x > worldSizeWorld || rayPos.y > worldSizeWorld || rayPos.z > worldSizeWorld) {
 			break; // Salió de la cueva al vacío infinito
 		}
+
+		float distanciaRecorrida = length(rayPos - rayOrigin);
+		if (distanciaRecorrida > maxRenderDistance) {
+			break;
+		}
+
+		// El octree vive en "espacio de índice" (vóxeles), el rayo avanza en unidades
+		// de mundo: convertimos una vez por paso.
+		float3 indexPos = rayPos / voxelScale;
 
 		// 2. Bajar por el árbol (Top-Down Traversal)
 		uint nodoActual = 0; // Empezar siempre en la raíz
 		float3 posCajaMin = float3(0.0);
-		float tamañoActual = worldSize;
+		float tamañoActual = worldSizeIndex;
+		bool avanzo = false;
 
 		for (int nivel = 0; nivel < maxLevels; nivel++) {
 			uint desc = nodes[nodoActual].descriptor;
@@ -92,79 +89,127 @@ kernel void compute_main(
 			float halfSize = tamañoActual * 0.5;
 			float3 centro = posCajaMin + halfSize;
 
-			uint bitX = rayPos.x >= centro.x ? 1 : 0;
-			uint bitY = rayPos.y >= centro.y ? 1 : 0;
-			uint bitZ = rayPos.z >= centro.z ? 1 : 0;
+			uint bitX = indexPos.x >= centro.x ? 1 : 0;
+			uint bitY = indexPos.y >= centro.y ? 1 : 0;
+			uint bitZ = indexPos.z >= centro.z ? 1 : 0;
 
 			// Usamos la misma codificación Morton (Z-Curve) que en C++
 			uint octante = bitX | (bitY << 1) | (bitZ << 2);
 			uint mascaraOctante = 1 << octante;
 
 			uint indiceHijo = childPtr + octante;
-			colorFinal = DecodificarColor(nodes[indiceHijo].material);
+
+			// Caja del octante actual, en espacio de índice
+			float3 childBoxMin = posCajaMin + float3(bitX ? halfSize : 0.0, bitY ? halfSize : 0.0, bitZ ? halfSize : 0.0);
+			float3 childBoxMax = childBoxMin + halfSize;
+
 			// B. ¿Es sólido el octante actual?
-			if ((leafMask & mascaraOctante) != 0 && colorFinal.a > 0.0) {
-				// ¡Chocamos con la pared de la cueva!
+			if ((leafMask & mascaraOctante) != 0) {
+				float4 hitColor = DecodificarColor(nodes[indiceHijo].material);
+				if (hitColor.a > 0.0) {
+					// ¡Chocamos con la pared de la cueva!
+					float3 distToMin = indexPos - childBoxMin;
+					float3 distToMax = childBoxMax - indexPos;
 
-				// Esquinas de la caja del vóxel/nodo hoja que golpeamos, para poder
-				// deducir a qué cara pertenece rayPos (no guardamos normales, así que
-				// las derivamos geométricamente de la caja del octante).
-				float3 boxMin = posCajaMin + float3(bitX ? halfSize : 0.0, bitY ? halfSize : 0.0, bitZ ? halfSize : 0.0);
-				float3 boxMax = boxMin + halfSize;
+					float3 normal = float3(-1.0, 0.0, 0.0);
+					float minDist = distToMin.x;
+					if (distToMin.y < minDist) { minDist = distToMin.y; normal = float3(0.0, -1.0, 0.0); }
+					if (distToMin.z < minDist) { minDist = distToMin.z; normal = float3(0.0, 0.0, -1.0); }
+					if (distToMax.x < minDist) { minDist = distToMax.x; normal = float3(1.0, 0.0, 0.0); }
+					if (distToMax.y < minDist) { minDist = distToMax.y; normal = float3(0.0, 1.0, 0.0); }
+					if (distToMax.z < minDist) { minDist = distToMax.z; normal = float3(0.0, 0.0, 1.0); }
 
-				float3 distToMin = rayPos - boxMin;
-				float3 distToMax = boxMax - rayPos;
+					// Luz "linterna" pegada a la cámara: como el rayo parte de la cámara,
+					// la dirección hacia la luz desde el punto de impacto es siempre -rayDir.
+					float ambient = 0.12;
+					float diffuse = max(dot(normal, -rayDir), 0.0);
+					float lighting = ambient + (1.0 - ambient) * diffuse;
+					hitColor.rgb *= lighting;
 
-				float3 normal = float3(-1.0, 0.0, 0.0);
-				float minDist = distToMin.x;
-				if (distToMin.y < minDist) { minDist = distToMin.y; normal = float3(0.0, -1.0, 0.0); }
-				if (distToMin.z < minDist) { minDist = distToMin.z; normal = float3(0.0, 0.0, -1.0); }
-				if (distToMax.x < minDist) { minDist = distToMax.x; normal = float3(1.0, 0.0, 0.0); }
-				if (distToMax.y < minDist) { minDist = distToMax.y; normal = float3(0.0, 1.0, 0.0); }
-				if (distToMax.z < minDist) { minDist = distToMax.z; normal = float3(0.0, 0.0, 1.0); }
+					// Atenuación por distancia (niebla) para poder juzgar profundidad
+					float atenuacion = clamp(1.0 - distanciaRecorrida / maxRenderDistance, 0.0, 1.0);
+					hitColor.rgb *= atenuacion;
 
-				// Luz "linterna" pegada a la cámara: como el rayo parte de la cámara,
-				// la dirección hacia la luz desde el punto de impacto es siempre -rayDir.
-				float ambient = 0.12;
-				float diffuse = max(dot(normal, -rayDir), 0.0);
-				float lighting = ambient + (1.0 - ambient) * diffuse;
-				colorFinal.rgb *= lighting;
+					// Corrección gamma para evitar que los colores se vean demasiado oscuros
+					hitColor.rgb = pow(hitColor.rgb, float3(1.0 / gamma));
 
-				// Atenuación por distancia (niebla) para poder juzgar profundidad
-				float distanciaRecorrida = float(paso) * stepSize;
-				float atenuacion = clamp(1.0 - distanciaRecorrida / (float(maxSteps) * stepSize), 0.0, 1.0);
-				colorFinal.rgb *= atenuacion;
-
-				// Corrección gamma para evitar que los colores se vean demasiado oscuros
-				colorFinal.rgb = pow(colorFinal.rgb, float3(1.0 / gamma));
-				hit = true;
-				break; // Romper el bucle de niveles
+					colorFinal = hitColor;
+					hit = true;
+					break; // Romper el bucle de niveles
+				}
 			}
 
 			// C. ¿Tiene más subdivisiones? (Es una rama mezclada)
 			if ((validMask & mascaraOctante) != 0) {
-				nodoActual = childPtr + octante;
+				nodoActual = indiceHijo;
 				tamañoActual = halfSize;
-
-				// Actualizar la esquina inferior izquierda de la caja para el siguiente nivel
-				posCajaMin.x += bitX ? halfSize : 0.0;
-				posCajaMin.y += bitY ? halfSize : 0.0;
-				posCajaMin.z += bitZ ? halfSize : 0.0;
+				posCajaMin = childBoxMin;
 			}
 			else {
-				// D. Es aire puro.
-				break; // Romper el bucle de niveles para dejar que el rayo avance
+				// D. Es aire puro: en vez de avanzar un paso fijo, saltamos de una vez
+				// hasta el borde de salida de esta caja vacía (ray marching adaptativo).
+				float3 emptyBoxMinWorld = childBoxMin * voxelScale;
+				float3 emptyBoxMaxWorld = childBoxMax * voxelScale;
+				float tExit = AABBExitT(rayPos, rayDir, emptyBoxMinWorld, emptyBoxMaxWorld);
+				rayPos += rayDir * max(tExit + epsilon, epsilon);
+				avanzo = true;
+				break; // Romper el bucle de niveles para reiniciar el descenso desde la raíz
 			}
 		}
 
-		// 3. Si chocamos, terminamos el rayo principal
 		if (hit) {
 			break;
 		}
 
-		// 4. Si era aire, avanzamos el rayo para la siguiente iteración
-		rayPos += rayDir * stepSize;
+		if (!avanzo) {
+			// Salvaguarda defensiva (no debería ocurrir con un octree bien formado):
+			// evita quedarnos congelados si ni impactamos ni saltamos.
+			rayPos += rayDir * epsilon;
+		}
 	}
+
+	return colorFinal;
+}
+
+// 2. El Kernel Principal
+kernel void compute_main(
+	texture2d<float, access::write> outputTexture [[texture(0)]],
+	device const SVONode* nodes [[buffer(0)]],
+	constant Uniforms& uniforms [[buffer(1)]],
+	uint2 gridPos [[thread_position_in_grid]] )
+{
+	// Límite de pantalla
+	if (gridPos.x >= outputTexture.get_width() || gridPos.y >= outputTexture.get_height()) {
+		return;
+	}
+
+	float worldSize = uniforms.worldSize; // Tamaño real del VoxelGrid/SVO, en vóxeles de índice
+	int maxLevels = int(uniforms.maxLevels); // log2(worldSize): profundidad real del octree
+	float voxelScale = uniforms.voxelScale;
+
+	float2 dims = float2(outputTexture.get_width(), outputTexture.get_height());
+
+	// Supersampling 2x2: disparamos 4 rayos con sub-desplazamiento dentro del píxel y
+	// promediamos el color, para suavizar los bordes en diente de sierra de las
+	// aristas de los vóxeles sin necesitar un paso de post-procesado aparte.
+	const int kSamples = 2;
+	float4 colorAccum = float4(0.0);
+
+	for (int sy = 0; sy < kSamples; sy++) {
+		for (int sx = 0; sx < kSamples; sx++) {
+			float2 subOffset = (float2(sx, sy) + 0.5) / float(kSamples) - 0.5;
+			float2 uv = ((float2(gridPos) + subOffset) / dims) * 2.0 - 1.0;
+			uv.x *= dims.x / dims.y;
+
+			float3 rayDir = normalize(uniforms.cameraDir +
+				uv.x * uniforms.cameraRight * uniforms.fov +
+				uv.y * uniforms.cameraUp * uniforms.fov);
+
+			colorAccum += TraceRay(uniforms.cameraPos, rayDir, nodes, worldSize, maxLevels, voxelScale);
+		}
+	}
+
+	float4 colorFinal = colorAccum / float(kSamples * kSamples);
 
 	// Escribir en la textura de destino
 	outputTexture.write(colorFinal, gridPos);

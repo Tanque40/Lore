@@ -37,6 +37,10 @@ private:
 	float m_WorldSize = 256.0f;
 	float m_MaxLevels = 8.0f;
 
+	// Unidades de mundo por vóxel de índice. Bajarlo hace que los vóxeles se vean
+	// más pequeños/finos sin cambiar cuántos hay ni el tamaño del laberinto en índices.
+	float m_VoxelScale = 0.25f;
+
 	// Compute-First pipeline resources
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;

@@ -14,9 +14,12 @@ void GameLayer::OnAttach() {
 	m_Height = Lore::Application::Get().GetWindow().GetHeight();
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
 
-	glm::vec3 cameraPosition = { 20.0f, 24.0f, 30.0f };
+	// Posiciones expresadas en índices de vóxel de la escena de muestra, convertidas a
+	// unidades de mundo con m_VoxelScale para que la vista quede igual de encuadrada
+	// sin importar qué tan finos sean los vóxeles.
+	glm::vec3 cameraPosition = glm::vec3(20.0f, 24.0f, 30.0f) * m_VoxelScale;
 	m_Camera.SetPosition(cameraPosition);
-	m_Camera.SetDirection(glm::normalize(glm::vec3(24.0f, 24.0f, 24.0f) - cameraPosition));
+	m_Camera.SetDirection(glm::normalize(glm::vec3(24.0f, 24.0f, 24.0f) * m_VoxelScale - cameraPosition));
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -78,6 +81,7 @@ void GameLayer::OnUpdate(Lore::TimeStep ts) {
 	m_ComputeShader->SetUniform1f("u_Fov", glm::radians(m_Camera.GetFov()));
 	m_ComputeShader->SetUniform1f("u_WorldSize", m_WorldSize);
 	m_ComputeShader->SetUniform1f("u_MaxLevels", m_MaxLevels);
+	m_ComputeShader->SetUniform1f("u_VoxelScale", m_VoxelScale);
 
 	// 2. Dispatch compute shader
 	uint32_t groupsX = (m_Width + 15) / 16;

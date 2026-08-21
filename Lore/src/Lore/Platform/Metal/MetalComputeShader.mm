@@ -82,6 +82,8 @@ namespace Lore {
 			m_Uniforms.worldSize = value;
 		} else if (name == "u_MaxLevels") {
 			m_Uniforms.maxLevels = value;
+		} else if (name == "u_VoxelScale") {
+			m_Uniforms.voxelScale = value;
 		}
 	}
 

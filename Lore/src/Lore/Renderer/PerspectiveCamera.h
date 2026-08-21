@@ -32,7 +32,7 @@ namespace Lore {
 		void ProcessMouseScroll(float yOffset);
 
 		inline void SetPosition(const glm::vec3& position) { m_CameraPosition = position; UpdateCameraVectors(); }
-		inline void SetDirection(const glm::vec3& direction) { m_CameraDirection = direction; UpdateCameraVectors(); }
+		void SetDirection(const glm::vec3& direction);
 
 		glm::vec3 GetPosition() const { return m_CameraPosition; }
 		glm::vec3 GetDirection() const { return m_CameraDirection; }

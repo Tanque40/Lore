@@ -87,7 +87,8 @@ void GameLayer::OnImGuiRender() {
 					// arrancar DENTRO del primer pasillo tallado (la celda de entrada),
 					// no en su posición libre anterior, o quedaría embebida en roca.
 					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
-					glm::vec3 entryVoxelCenter = { 1.5f, 1.5f, 1.5f };
+					float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
+					glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
 					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
 					if (entryCell->IsLinked(entryCell->GetEast())) {
 						lookDir = { 1.0f, 0.0f, 0.0f };
