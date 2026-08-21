@@ -3,7 +3,8 @@ using namespace metal;
 
 // 1. Estructuras (Debe coincidir con tu C++)
 struct SVONode {
-	uint descriptor;
+	uint descriptor; // Bits 0-7: Valid, Bits 8-15: Leaf (bits 16-31 sin usar)
+	uint childIndex; // Rango completo de 32 bits (no empaquetado en descriptor)
 	uint material;
 };
 
@@ -83,7 +84,7 @@ inline float4 TraceRay(float3 rayOrigin, float3 rayDir, device const SVONode* no
 			uint desc = nodes[nodoActual].descriptor;
 			uint validMask = desc & 0xFF;
 			uint leafMask = (desc >> 8) & 0xFF;
-			uint childPtr = desc >> 16;
+			uint childPtr = nodes[nodoActual].childIndex;
 
 			// A. ¿En qué octante de esta caja está la punta del rayo?
 			float halfSize = tamañoActual * 0.5;

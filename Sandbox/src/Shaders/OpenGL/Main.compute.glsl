@@ -5,7 +5,8 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 // Estructuras
 struct SVONode {
-	uint descriptor;
+	uint descriptor; // Bits 0-7: Valid, Bits 8-15: Leaf (bits 16-31 sin usar)
+	uint childIndex; // Rango completo de 32 bits (no empaquetado en descriptor)
 	uint material;
 };
 
@@ -86,7 +87,7 @@ vec4 TraceRay(vec3 rayOrigin, vec3 rayDir, float worldSizeIndex, int maxLevels, 
 			uint desc = nodes[nodoActual].descriptor;
 			uint validMask = desc & 0xFFu;
 			uint leafMask = (desc >> 8) & 0xFFu;
-			uint childPtr = desc >> 16;
+			uint childPtr = nodes[nodoActual].childIndex;
 
 			float halfSize = tamanoActual * 0.5;
 			vec3 centro = posCajaMin + halfSize;

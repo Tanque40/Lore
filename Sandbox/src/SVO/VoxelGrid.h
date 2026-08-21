@@ -45,5 +45,19 @@ namespace SVO {
 		std::string ToString() const;
 
 		VoxelGrid CastToVoxels(Maze::Grid3D* laberinto, int gridSize);
+
+		// Genera un mundo dedicado por completo a una única estalactita de alta resolución
+		// con estrías/ondulaciones procedurales (ruido Perlin). A diferencia de CastToVoxels
+		// (que reparte el presupuesto size^3 sobre un laberinto grande), aquí TODO el índice
+		// se concentra en el volumen que realmente ocupa el objeto: el mismo costo de memoria
+		// (size^3, ver comentario en el constructor) produce vóxeles mucho más finos sobre la
+		// única pieza de geometría que importa. size se redondea a la potencia de 2 más
+		// cercana hacia arriba, igual que CastToVoxels.
+		static VoxelGrid CreateStalactite(uint32_t size);
+
+		// Misma idea que CreateStalactite pero invertida: crece del piso hacia arriba en vez
+		// de colgar del techo hacia abajo (y con una base algo más ancha, como una
+		// estalagmita real).
+		static VoxelGrid CreateStalagmite(uint32_t size);
 	};
 }

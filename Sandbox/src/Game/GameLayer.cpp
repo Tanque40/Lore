@@ -45,6 +45,10 @@ void GameLayer::OnAttach() {
 	m_MaxLevels = std::log2(m_WorldSize);
 
 	m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
+	// El buffer denso de autoría ya no hace falta una vez compactado en el SVO: liberarlo
+	// evita mantener el grid completo (potencialmente decenas de MB, casi todo aire) vivo
+	// durante el resto de la sesión.
+	m_VoxelGrid.Clear();
 
 	uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
 	// Lo enlazamos al slot 0 (binding=0)

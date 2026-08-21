@@ -11,7 +11,7 @@ namespace SVO {
 		m_Nodes.reserve(10000);
 
 		// Insertamos la raíz vacía en el índice 0
-		m_Nodes.push_back({ 0, 0 });
+		m_Nodes.push_back({ 0, 0, 0 });
 
 		// Iniciamos la recursividad desde el índice 0, esquina (0,0,0) con el tamaño total
 		OctantResult rootResult = BuildRecursive(0, 0, 0, 0, grid.GetSize(), grid);
@@ -61,7 +61,7 @@ namespace SVO {
 
 		// Expandimos el vector creando 8 nodos vacíos de golpe
 		for (int i = 0; i < 8; ++i) {
-			m_Nodes.push_back({ 0, 0 });
+			m_Nodes.push_back({ 0, 0, 0 });
 		}
 
 		uint8_t validMask = 0;
@@ -94,11 +94,11 @@ namespace SVO {
 		// PASO 4: Empaquetar el Descriptor del Padre
 		// ---------------------------------------------------------
 		uint32_t descriptor = 0;
-		descriptor |= (validMask & 0xFF);                   // Bits 0-7
-		descriptor |= ((leafMask & 0xFF) << 8);             // Bits 8-15
-		descriptor |= ((baseChildIndex & 0xFFFF) << 16);    // Bits 16-31
+		descriptor |= (validMask & 0xFF);       // Bits 0-7
+		descriptor |= ((leafMask & 0xFF) << 8); // Bits 8-15
 
 		m_Nodes[nodeIndex].descriptor = descriptor;
+		m_Nodes[nodeIndex].childIndex = baseChildIndex; // Rango completo de 32 bits, sin truncar
 
 		// Devolvemos que este nodo no es ni aire puro ni una hoja sólida (es una rama)
 		return { false, false, 0 };

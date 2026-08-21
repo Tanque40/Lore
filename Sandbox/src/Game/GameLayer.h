@@ -29,6 +29,13 @@ private:
 	SVO::VoxelGrid m_VoxelGrid{ 256 };
 	std::string m_VoxelGridString = "";
 	SVO::SVOBuilder m_SVOBuilder;
+
+	// Resolución (se redondea a potencia de 2) dedicada por completo a la demo de la
+	// estalactita: ver SVO::VoxelGrid::CreateStalactite.
+	uint32_t m_StalactiteResolution = 256;
+
+	// Igual que m_StalactiteResolution pero para SVO::VoxelGrid::CreateStalagmite.
+	uint32_t m_StalagmiteResolution = 256;
 	std::vector<SVO::SVONode> m_SVOData;
 	std::shared_ptr<Lore::StorageBuffer> svoBuffer;
 
