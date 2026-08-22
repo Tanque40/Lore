@@ -22,6 +22,7 @@ namespace Lore {
 		glm::vec3 m_CameraDirection;
 		glm::vec3 m_CameraUp;
 		glm::vec3 m_CameraRight;
+		glm::vec3 m_WorldUp; // Referencia fija; evita que el roll se acumule frame a frame
 		float m_MovementSpeed = 5.0f;
 
 	public:
