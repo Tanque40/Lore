@@ -1,8 +1,5 @@
 #include "sndbxpch.h"
 
-#include <iomanip>
-#include <sstream>
-
 #include "SVO/VoxelGrid.h"
 
 namespace {
