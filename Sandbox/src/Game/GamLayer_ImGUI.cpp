@@ -139,6 +139,44 @@ void GameLayer::OnImGuiRender() {
 					m_Camera.SetDirection(lookDir);
 				}
 
+				ImGui::TableNextColumn();
+				if (ImGui::Button("Wilson's 3D")) {
+					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
+					Maze::Wilsons::On(&m_Grid3D);
+					m_Grid3DString = m_Grid3D.ToString();
+
+					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
+
+					m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
+					m_MaxLevels = std::log2(m_WorldSize);
+
+					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
+					m_VoxelGrid.Clear();
+
+					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
+					// Lo enlazamos al slot 0 (binding=0)
+					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
+
+					svoBuffer->SetData(m_SVOData.data(), bufferSize);
+
+					// Misma razon que en Binary Tree 3D: la camara tiene que arrancar
+					// dentro del primer pasillo tallado (la celda de entrada), no en
+					// una posicion libre que podria caer en roca solida.
+					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
+					float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
+					glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
+					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
+					if (entryCell->IsLinked(entryCell->GetEast())) {
+						lookDir = { 1.0f, 0.0f, 0.0f };
+					} else if (entryCell->IsLinked(entryCell->GetUp())) {
+						lookDir = { 0.0f, 1.0f, 0.0f };
+					} else if (entryCell->IsLinked(entryCell->GetSouth())) {
+						lookDir = { 0.0f, 0.0f, 1.0f };
+					}
+					m_Camera.SetPosition(entryVoxelCenter);
+					m_Camera.SetDirection(lookDir);
+				}
+
 				ImGui::EndTable();
 			}
 
