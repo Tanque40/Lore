@@ -24,6 +24,11 @@ namespace Lore {
 		void* m_CurrentPassDescriptor = nullptr; // MTLRenderPassDescriptor*
 		void* m_OffscreenTexture = nullptr;       // id<MTLTexture> for offscreen rendering
 
+		// Command buffer del frame anterior (retenido con __bridge_retained). SwapBuffers
+		// espera a ESTE en vez de al del frame actual: la CPU prepara el frame N mientras la
+		// GPU termina el N-1, con como maximo 2 frames en vuelo.
+		void* m_PreviousFrameCommandBuffer = nullptr; // id<MTLCommandBuffer>
+
 		// Compute state
 		void* m_CurrentComputePipeline = nullptr;  // id<MTLComputePipelineState>
 		void* m_CurrentComputeTexture = nullptr;   // id<MTLTexture> (weak ref, owned by ComputeTexture)
