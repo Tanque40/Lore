@@ -29,6 +29,10 @@ namespace Lore {
 			float voxelScale = 1.0f;
 			float lodPixelThreshold = 0.02f;
 			float lodCoverageThreshold = 0.05f;
+			// En MSL el struct Uniforms mide 96 bytes: los float3 se alinean a 16, asi que el
+			// tamaño total se redondea a multiplo de 16. Sin este relleno el de C++ mide 88 y
+			// la capa de validacion de Metal (MTL_DEBUG_LAYER=1) aborta en el dispatch.
+			float _pad4[2] = { 0.0f, 0.0f };
 		};
 
 

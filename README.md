@@ -1296,8 +1296,9 @@ Luego abrir `Lore.slnx` en Visual Studio y compilar. El proyecto `Sandbox` está
 ./Scripts/Macos/Main/Bootstrap.sh
 
 # Compilar y ejecutar
-make config=debug_macosx-aarch64
-./bin/Debug-macosx-AARCH64/Sandbox/Sandbox
+make config=debug -j8
+# Ejecutar desde la raíz del repo (los shaders se cargan con ruta relativa)
+./Sandbox/bin/Debug-macosx-AARCH64/Sandbox/Sandbox
 ```
 
 ### Pruebas de laberintos
