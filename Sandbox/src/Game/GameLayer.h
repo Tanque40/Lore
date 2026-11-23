@@ -68,7 +68,8 @@ private:
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;
 
-	// Fracción del framebuffer real (en píxeles) que traza el compute shader.
+	// Fracción del framebuffer real (en píxeles) que traza el compute shader. OnAttach la
+	// inicializa a puntos/píxeles (0.5 en Retina) para no cuadruplicar el costo por defecto.
 	float m_RenderScale = 1.0f;
 
 	uint32_t m_Width = 800;

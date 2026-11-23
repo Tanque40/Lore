@@ -13,6 +13,14 @@ void GameLayer::OnAttach() {
 	// El compute shader traza un rayo por píxel REAL del framebuffer (en Retina/HiDPI es
 	// mayor que el tamaño de la ventana en puntos), escalado por m_RenderScale.
 	m_ComputeTexture.reset(Lore::ComputeTexture::Create(1, 1));
+	{
+		// Por defecto trazamos tantos píxeles como puntos tiene la ventana (lo mismo que
+		// antes de usar el framebuffer real): en Retina eso es 0.5, en una pantalla 1x es
+		// 1.0. Subir el slider a 1.0 en Retina da nitidez completa pero 4x más rayos.
+		Lore::Window& window = Lore::Application::Get().GetWindow();
+		if (window.GetFramebufferWidth() > 0)
+			m_RenderScale = std::clamp(static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetFramebufferWidth()), 0.25f, 1.0f);
+	}
 	ResizeComputeTarget();
 
 	// Posiciones expresadas en índices de vóxel de la escena de muestra, convertidas a
