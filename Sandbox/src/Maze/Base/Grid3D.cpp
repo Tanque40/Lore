@@ -22,28 +22,36 @@ namespace Maze {
 	void Grid3D::ConfigureCells() {
 		PrepareGrid();
 
+		// OJO con el orden de los indices: PrepareGrid guarda las celdas como
+		// m_Grid[level][row][column], asi que el vecino tiene que leerse en ese mismo
+		// orden. Indexarlo como m_Grid[row][column][level] no da error (en un grid cubico
+		// todas las dimensiones miden igual) pero enlaza cada celda con una celda
+		// arbitraria de otra parte del grid: el laberinto sigue siendo un grafo valido,
+		// solo que sus pasillos ya no coinciden con la vecindad espacial que asume
+		// VoxelGrid::CastToVoxels, y lo tallado queda como camaras sueltas con muñones
+		// que mueren contra la roca en vez de una cueva conectada.
 		EachCell([&](Cell3D* cell) {
 			uint32_t row = cell->GetRow();
 			uint32_t column = cell->GetColumn();
 			uint32_t level = cell->GetLevel();
 
 			if (row > 0) {
-				cell->SetNorth(m_Grid[row - 1][column][level]);
+				cell->SetNorth(m_Grid[level][row - 1][column]);
 			}
 			if (row < m_Rows - 1) {
-				cell->SetSouth(m_Grid[row + 1][column][level]);
+				cell->SetSouth(m_Grid[level][row + 1][column]);
 			}
 			if (column < m_Columns - 1) {
-				cell->SetEast(m_Grid[row][column + 1][level]);
+				cell->SetEast(m_Grid[level][row][column + 1]);
 			}
 			if (column > 0) {
-				cell->SetWest(m_Grid[row][column - 1][level]);
+				cell->SetWest(m_Grid[level][row][column - 1]);
 			}
 			if (level < m_Levels - 1) {
-				cell->SetUp(m_Grid[row][column][level + 1]);
+				cell->SetUp(m_Grid[level + 1][row][column]);
 			}
 			if (level > 0) {
-				cell->SetDown(m_Grid[row][column][level - 1]);
+				cell->SetDown(m_Grid[level - 1][row][column]);
 			}
 			});
 	}
@@ -52,7 +60,7 @@ namespace Maze {
 		uint32_t row = std::rand() % m_Rows;
 		uint32_t column = std::rand() % m_Columns;
 		uint32_t level = std::rand() % m_Levels;
-		return m_Grid[row][column][level];
+		return m_Grid[level][row][column];
 	}
 
 	void Grid3D::EachLevel(std::function<void(std::vector<std::vector<Cell3D*>>)> callback) {

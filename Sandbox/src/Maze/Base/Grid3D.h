@@ -29,9 +29,11 @@ namespace Maze {
 			return m_Rows * m_Columns * m_Levels;
 		}
 
+		// El orden de almacenamiento es m_Grid[level][row][column] (ver PrepareGrid); los
+		// parametros siguen en el orden (row, column, level) por comodidad de llamada.
 		Cell3D* operator ()(uint32_t row, uint32_t column, uint32_t level) {
-			if (0 <= row && row < m_Rows && 0 <= column && column < m_Columns && 0 <= level && level < m_Levels)
-				return m_Grid[row][column][level];
+			if (row < m_Rows && column < m_Columns && level < m_Levels)
+				return m_Grid[level][row][column];
 
 			return nullptr;
 		}

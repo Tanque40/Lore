@@ -25,6 +25,14 @@ namespace SVO {
 			m_Data.resize(size * size * size, 0);
 		}
 
+		// Rellena el mundo entero con un único material. std::fill recorre m_Data de forma
+		// lineal; el triple bucle con SetVoxel que hacía esto antes escribía con paso
+		// m_Size^2 en el bucle interno, o sea un fallo de caché por vóxel en los 16.7M de un
+		// mundo de 256^3.
+		inline void Fill(uint32_t material) {
+			std::fill(m_Data.begin(), m_Data.end(), material);
+		}
+
 		inline void Clear() {
 			m_Data.clear();
 			m_Size = 0;
