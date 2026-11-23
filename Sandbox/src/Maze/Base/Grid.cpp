@@ -5,11 +5,13 @@
 namespace Maze {
 
 	void Grid::PrepareGrid() {
-		m_Grid.resize(m_Rows);
+		m_Cells = std::make_shared<std::vector<std::unique_ptr<Cell>>>();
+		m_Cells->reserve(static_cast<size_t>(m_Rows) * m_Columns);
+		m_Grid.assign(m_Rows, std::vector<Cell*>(m_Columns, nullptr));
 		for (unsigned int r = 0; r < m_Rows; r++) {
-			m_Grid[r].resize(m_Columns);
 			for (unsigned int c = 0; c < m_Columns; c++) {
-				m_Grid[r][c] = new Cell(r, c);
+				m_Cells->push_back(std::make_unique<Cell>(r, c));
+				m_Grid[r][c] = m_Cells->back().get();
 			}
 		}
 	}
@@ -35,9 +37,9 @@ namespace Maze {
 		}
 	}
 
-	Cell* Grid::RandomCell() {
-		unsigned int r = rand() % m_Rows;
-		unsigned int c = rand() % m_Columns;
+	Cell* Grid::RandomCell(Random& rng) {
+		unsigned int r = rng.Range(m_Rows);
+		unsigned int c = rng.Range(m_Columns);
 		return m_Grid[r][c];
 	}
 

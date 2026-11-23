@@ -118,13 +118,16 @@ namespace Lore {
 		[computeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
 		[computeEncoder endEncoding];
 
+		// Sin waitUntilCompleted: el pase de render que lee esta textura se codifica en un
+		// command buffer posterior de la MISMA cola, asi que la GPU lo ejecuta despues de
+		// que termine este compute. Esperar aqui solo bloqueaba la CPU.
 		[commandBuffer commit];
-		[commandBuffer waitUntilCompleted];
 	}
 
 	void MetalRendererAPI::ComputeBarrier() {
-		// Metal synchronization is implicit after waitUntilCompleted in DispatchCompute.
-		// No additional barrier needed.
+		// No hace falta barrera explicita: los command buffers de una misma MTLCommandQueue
+		// se ejecutan en orden de commit, y la textura de compute usa el hazard tracking
+		// por defecto de Metal, asi que el blit posterior ve las escrituras del compute.
 	}
 
 	void MetalRendererAPI::BlitToScreen(void* nativeTexture, uint32_t width, uint32_t height) {

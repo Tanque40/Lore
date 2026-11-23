@@ -25,6 +25,11 @@ namespace Lore {
 			s_Instance = nullptr;
 
 		// Release retained Metal objects (those stored via __bridge_retained)
+		if (m_PreviousFrameCommandBuffer) {
+			id<MTLCommandBuffer> previous = (__bridge_transfer id<MTLCommandBuffer>)m_PreviousFrameCommandBuffer;
+			[previous waitUntilCompleted];
+			m_PreviousFrameCommandBuffer = nullptr;
+		}
 		if (m_BlitPipelineState) {
 			CFRelease(m_BlitPipelineState);
 			m_BlitPipelineState = nullptr;
@@ -176,8 +181,11 @@ namespace Lore {
 		id<MTLCommandBuffer> commandBuffer = (__bridge id<MTLCommandBuffer>)m_CurrentCommandBuffer;
 
 		[encoder endEncoding];
+		// Sin waitUntilCompleted: los command buffers de una misma cola se ejecutan en el
+		// orden en que se hace commit, y Metal rastrea las dependencias de los recursos
+		// (texturas/buffers con hazard tracking por defecto). Bloquear la CPU aqui solo
+		// serializaba CPU y GPU sin aportar correccion.
 		[commandBuffer commit];
-		[commandBuffer waitUntilCompleted];
 
 		m_CurrentEncoder = nullptr;
 		m_CurrentCommandBuffer = nullptr;
@@ -198,7 +206,15 @@ namespace Lore {
 		// Present and commit
 		[commandBuffer presentDrawable:drawable];
 		[commandBuffer commit];
-		[commandBuffer waitUntilCompleted];
+
+		// Limitar los frames en vuelo a 2: esperar al frame ANTERIOR (que normalmente ya
+		// termino) en vez de al actual. Antes se esperaba aqui al frame actual y tambien
+		// tras el compute y cada pase, bloqueando la CPU 3 veces por frame.
+		if (m_PreviousFrameCommandBuffer) {
+			id<MTLCommandBuffer> previous = (__bridge_transfer id<MTLCommandBuffer>)m_PreviousFrameCommandBuffer;
+			[previous waitUntilCompleted];
+		}
+		m_PreviousFrameCommandBuffer = (__bridge_retained void*)commandBuffer;
 
 		// Reset frame state
 		m_CurrentEncoder = nullptr;

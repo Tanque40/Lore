@@ -6,6 +6,7 @@
 
 #include "Maze/Base/Grid.h"
 #include "Maze/Base/Grid3D.h"
+#include "Maze/Base/Random.h"
 
 #include "SVO/VoxelGrid.h"
 #include "SVO/SVO.h"
@@ -19,6 +20,10 @@ private:
 	uint32_t m_GridDimension = 10;
 	Maze::Grid m_Grid;
 	std::string m_GridString = "";
+
+	// Semilla de todos los generadores de laberintos: la misma semilla reproduce el mismo
+	// laberinto (ver Maze::Random).
+	uint32_t m_MazeSeed = 1;
 
 	uint32_t m_Grid3DDimension = 5;
 	Maze::Grid3D m_Grid3D;
@@ -63,6 +68,10 @@ private:
 	std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
 	std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;
 
+	// Fracción del framebuffer real (en píxeles) que traza el compute shader. OnAttach la
+	// inicializa a puntos/píxeles (0.5 en Retina) para no cuadruplicar el costo por defecto.
+	float m_RenderScale = 1.0f;
+
 	uint32_t m_Width = 800;
 	uint32_t m_Height = 600;
 
@@ -94,4 +103,11 @@ public:
 	bool CameraMouseScroll(Lore::MouseScrolledEvent event);
 	bool WindowResize(Lore::WindowResizeEvent& event);
 	bool KeyPressed(Lore::KeyPressedEvent event);
+
+	// Ajusta la textura del compute shader al tamaño real del framebuffer * m_RenderScale.
+	void ResizeComputeTarget();
+
+	// Genera el laberinto 3D con la semilla actual, lo voxeliza, construye el SVO, lo sube a
+	// la GPU y coloca la cámara en la celda de entrada.
+	void GenerateMaze3D(void (*algorithm)(Maze::Grid3D*, Maze::Random&));
 };

@@ -6,8 +6,8 @@
 
 namespace Maze {
 
-	Grid BinaryTree::On(Grid grid) {
-		grid.EachCell([](Cell* cell) {
+	Grid BinaryTree::On(Grid grid, Random& rng) {
+		grid.EachCell([&](Cell* cell) {
 			std::vector<Cell*> neighbors;
 			if (cell->GetNorth()) {
 				neighbors.push_back(cell->GetNorth());
@@ -17,15 +17,15 @@ namespace Maze {
 			}
 
 			if (!neighbors.empty()) {
-				Cell* index = neighbors[rand() % neighbors.size()];
+				Cell* index = neighbors[rng.Range(static_cast<uint32_t>(neighbors.size()))];
 				cell->Link(index);
 			}
 			});
 		return grid;
 	}
 
-	void BinaryTree::On(Grid3D* grid) {
-		grid->EachCell([](Cell3D* cell) {
+	void BinaryTree::On(Grid3D* grid, Random& rng) {
+		grid->EachCell([&](Cell3D* cell) {
 			std::vector<Cell3D*> neighbors;
 			if (cell->GetNorth()) {
 				neighbors.push_back((Cell3D*)cell->GetNorth());
@@ -38,7 +38,7 @@ namespace Maze {
 			}
 
 			if (!neighbors.empty()) {
-				Cell3D* index = neighbors[rand() % neighbors.size()];
+				Cell3D* index = neighbors[rng.Range(static_cast<uint32_t>(neighbors.size()))];
 				cell->Link(index);
 			}
 			});

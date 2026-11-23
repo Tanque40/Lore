@@ -16,6 +16,11 @@ void GameLayer::OnImGuiRender() {
 		ImGui::Text("Resolution: %dx%d", m_Width, m_Height);
 		ImGui::Text("Framebuffer Size: %dx%d", spec.Width, spec.Height);
 		ImGui::Text("FPS: %.2f (%.2f ms)", m_FPS, m_FrameTime * 1000.0f);
+		// Fracción de los píxeles reales del framebuffer que traza el compute shader. En
+		// pantallas Retina/HiDPI 1.0 son el doble de píxeles por eje que la ventana en
+		// puntos; bajarlo (p. ej. 0.5) recupera FPS a cambio de nitidez.
+		if (ImGui::SliderFloat("Render scale", &m_RenderScale, 0.25f, 1.0f, "%.2f"))
+			ResizeComputeTarget();
 		ImGui::EndChild();
 	}
 
@@ -23,6 +28,13 @@ void GameLayer::OnImGuiRender() {
 		ImGui::BeginChild("Maze Info", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
 		{
 			ImGui::SeparatorText("Maze Generation");
+
+			// Misma semilla = mismo laberinto en cualquier plataforma (Maze::Random).
+			ImGui::InputScalar("Seed", ImGuiDataType_U32, &m_MazeSeed);
+			ImGui::SameLine();
+			if (ImGui::Button("Nueva semilla")) {
+				m_MazeSeed = static_cast<uint32_t>(std::random_device{}());
+			}
 			ImGui::InputInt("Grid Dimension", (int*)&m_GridDimension);
 
 			if (ImGui::BeginTable("Maze2DButtonsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
@@ -30,21 +42,24 @@ void GameLayer::OnImGuiRender() {
 				ImGui::TableNextColumn();
 				if (ImGui::Button("Binary Tree")) {
 					m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-					Maze::Grid grid = Maze::BinaryTree::On(m_Grid);
+					Maze::Random rng(m_MazeSeed);
+					Maze::Grid grid = Maze::BinaryTree::On(m_Grid, rng);
 					m_GridString = grid.ToString();
 				}
 
 				ImGui::TableNextColumn();
 				if (ImGui::Button("Wilson's")) {
 					m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-					Maze::Grid grid = Maze::Wilsons::On(m_Grid);
+					Maze::Random rng(m_MazeSeed);
+					Maze::Grid grid = Maze::Wilsons::On(m_Grid, rng);
 					m_GridString = grid.ToString();
 				}
 
 				ImGui::TableNextColumn();
 				if (ImGui::Button("Sidewinder")) {
 					m_Grid = Maze::Grid(m_GridDimension, m_GridDimension);
-					Maze::Grid grid = Maze::Sidewinder::On(m_Grid);
+					Maze::Random rng(m_MazeSeed);
+					Maze::Grid grid = Maze::Sidewinder::On(m_Grid, rng);
 					m_GridString = grid.ToString();
 				}
 
@@ -64,118 +79,16 @@ void GameLayer::OnImGuiRender() {
 			if (ImGui::BeginTable("Maze3DButtonsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
 
 				ImGui::TableNextColumn();
-				if (ImGui::Button("Binary Tree 3D")) {
-					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
-					Maze::BinaryTree::On(&m_Grid3D);
-					m_Grid3DString = m_Grid3D.ToString();
-
-					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
-
-					m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
-					m_MaxLevels = std::log2(m_WorldSize);
-
-					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
-					m_VoxelGrid.Clear();
-
-					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
-					// Lo enlazamos al slot 0 (binding=0)
-					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
-
-					svoBuffer->SetData(m_SVOData.data(), bufferSize);
-
-					// Fuera del laberinto todo es piedra sólida: la cámara tiene que
-					// arrancar DENTRO del primer pasillo tallado (la celda de entrada),
-					// no en su posición libre anterior, o quedaría embebida en roca.
-					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
-					float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
-					glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
-					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
-					if (entryCell->IsLinked(entryCell->GetEast())) {
-						lookDir = { 1.0f, 0.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetUp())) {
-						lookDir = { 0.0f, 1.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetSouth())) {
-						lookDir = { 0.0f, 0.0f, 1.0f };
-					}
-					m_Camera.SetPosition(entryVoxelCenter);
-					m_Camera.SetDirection(lookDir);
-				}
+				if (ImGui::Button("Binary Tree 3D"))
+					GenerateMaze3D(&Maze::BinaryTree::On);
 
 				ImGui::TableNextColumn();
-				if (ImGui::Button("Sidewinder 3D")) {
-					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
-					Maze::Sidewinder::On(&m_Grid3D);
-					m_Grid3DString = m_Grid3D.ToString();
-
-					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
-
-					m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
-					m_MaxLevels = std::log2(m_WorldSize);
-
-					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
-					m_VoxelGrid.Clear();
-
-					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
-					// Lo enlazamos al slot 0 (binding=0)
-					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
-
-					svoBuffer->SetData(m_SVOData.data(), bufferSize);
-
-					// Misma razon que en Binary Tree 3D: la camara tiene que arrancar
-					// dentro del primer pasillo tallado (la celda de entrada), no en
-					// una posicion libre que podria caer en roca solida.
-					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
-					float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
-					glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
-					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
-					if (entryCell->IsLinked(entryCell->GetEast())) {
-						lookDir = { 1.0f, 0.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetUp())) {
-						lookDir = { 0.0f, 1.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetSouth())) {
-						lookDir = { 0.0f, 0.0f, 1.0f };
-					}
-					m_Camera.SetPosition(entryVoxelCenter);
-					m_Camera.SetDirection(lookDir);
-				}
+				if (ImGui::Button("Sidewinder 3D"))
+					GenerateMaze3D(&Maze::Sidewinder::On);
 
 				ImGui::TableNextColumn();
-				if (ImGui::Button("Wilson's 3D")) {
-					m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
-					Maze::Wilsons::On(&m_Grid3D);
-					m_Grid3DString = m_Grid3D.ToString();
-
-					m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
-
-					m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
-					m_MaxLevels = std::log2(m_WorldSize);
-
-					m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
-					m_VoxelGrid.Clear();
-
-					uint32_t bufferSize = m_SVOData.size() * sizeof(SVO::SVONode);
-					// Lo enlazamos al slot 0 (binding=0)
-					svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
-
-					svoBuffer->SetData(m_SVOData.data(), bufferSize);
-
-					// Misma razon que en Binary Tree 3D: la camara tiene que arrancar
-					// dentro del primer pasillo tallado (la celda de entrada), no en
-					// una posicion libre que podria caer en roca solida.
-					Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
-					float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
-					glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
-					glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
-					if (entryCell->IsLinked(entryCell->GetEast())) {
-						lookDir = { 1.0f, 0.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetUp())) {
-						lookDir = { 0.0f, 1.0f, 0.0f };
-					} else if (entryCell->IsLinked(entryCell->GetSouth())) {
-						lookDir = { 0.0f, 0.0f, 1.0f };
-					}
-					m_Camera.SetPosition(entryVoxelCenter);
-					m_Camera.SetDirection(lookDir);
-				}
+				if (ImGui::Button("Wilson's 3D"))
+					GenerateMaze3D(&Maze::Wilsons::On);
 
 				ImGui::EndTable();
 			}

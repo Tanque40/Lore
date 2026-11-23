@@ -1,0 +1,27 @@
+name: Maze tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  maze-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sólo hace falta el header de Dear ImGui (sndbxpch.h lo incluye); el resto de
+      # dependencias (GLFW, spdlog, glm) no se usa en estas pruebas.
+      - name: Init ImGui submodule
+        run: git submodule update --init --depth 1 Lore/vendor/IMGUI
+
+      - name: Build
+        run: >
+          g++ -std=c++20 -Wall -O1 -g -fsanitize=address,undefined
+          -ISandbox/src -ILore/vendor/IMGUI
+          Tests/src/MazeTests.cpp Sandbox/src/Maze/Base/*.cpp Sandbox/src/Maze/Algorithms/*.cpp
+          -o maze-tests
+
+      # AddressSanitizer también reporta fugas de memoria al terminar.
+      - name: Run
+        run: ./maze-tests

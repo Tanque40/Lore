@@ -5,13 +5,16 @@
 namespace Maze {
 
 	void Grid3D::PrepareGrid() {
+		m_Cells = std::make_shared<std::vector<std::unique_ptr<Cell3D>>>();
+		m_Cells->reserve(static_cast<size_t>(m_Rows) * m_Columns * m_Levels);
 		m_Grid.clear();
 		for (uint32_t level = 0; level < m_Levels; level++) {
 			std::vector<std::vector<Cell3D*>> gridLevel;
 			for (uint32_t row = 0; row < m_Rows; row++) {
 				std::vector<Cell3D*> gridRow;
 				for (uint32_t column = 0; column < m_Columns; column++) {
-					gridRow.push_back(new Cell3D(row, column, level));
+					m_Cells->push_back(std::make_unique<Cell3D>(row, column, level));
+					gridRow.push_back(m_Cells->back().get());
 				}
 				gridLevel.push_back(gridRow);
 			}
@@ -56,10 +59,10 @@ namespace Maze {
 			});
 	}
 
-	Cell3D* Grid3D::RandomCell() {
-		uint32_t row = std::rand() % m_Rows;
-		uint32_t column = std::rand() % m_Columns;
-		uint32_t level = std::rand() % m_Levels;
+	Cell3D* Grid3D::RandomCell(Random& rng) {
+		uint32_t row = rng.Range(m_Rows);
+		uint32_t column = rng.Range(m_Columns);
+		uint32_t level = rng.Range(m_Levels);
 		return m_Grid[level][row][column];
 	}
 

@@ -4,7 +4,7 @@
 
 namespace Maze {
 
-	Grid Sidewinder::On(Grid grid) {
+	Grid Sidewinder::On(Grid grid, Random& rng) {
 		grid.EachRow([&](std::vector<Cell*> row) {
 			std::vector<Cell*> run;
 
@@ -14,10 +14,10 @@ namespace Maze {
 				bool atEasternBoundary = (cell->GetEast() == nullptr);
 				bool atNorthernBoundary = (cell->GetNorth() == nullptr);
 
-				bool shouldCloseOut = atEasternBoundary || (!atNorthernBoundary && (std::rand() % 2 == 0));
+				bool shouldCloseOut = atEasternBoundary || (!atNorthernBoundary && (rng.Coin()));
 
 				if (shouldCloseOut) {
-					Cell* member = run[std::rand() % run.size()];
+					Cell* member = run[rng.Range(static_cast<uint32_t>(run.size()))];
 					if (member->GetNorth()) {
 						member->Link(member->GetNorth());
 					}
@@ -43,7 +43,7 @@ namespace Maze {
 	// run (un camino) se suelda al arbol ya construido por una unica arista, asi
 	// que el resultado sigue siendo un arbol de expansion perfecto (sin ciclos,
 	// totalmente conexo) en vez de un grafo con loops.
-	void Sidewinder::On(Grid3D* grid) {
+	void Sidewinder::On(Grid3D* grid, Random& rng) {
 		grid->EachRow([&](std::vector<Cell3D*> row) {
 			std::vector<Cell3D*> run;
 
@@ -53,16 +53,16 @@ namespace Maze {
 				bool atEasternBoundary = (cell->GetEast() == nullptr);
 				bool canCloseBackward = (cell->GetNorth() != nullptr) || (cell->GetDown() != nullptr);
 
-				bool shouldCloseOut = atEasternBoundary || (canCloseBackward && (std::rand() % 2 == 0));
+				bool shouldCloseOut = atEasternBoundary || (canCloseBackward && (rng.Coin()));
 
 				if (shouldCloseOut) {
-					Cell3D* member = run[std::rand() % run.size()];
+					Cell3D* member = run[rng.Range(static_cast<uint32_t>(run.size()))];
 
 					bool memberHasNorth = (member->GetNorth() != nullptr);
 					bool memberHasDown = (member->GetDown() != nullptr);
 
 					if (memberHasNorth && memberHasDown) {
-						if (std::rand() % 2 == 0)
+						if (rng.Coin())
 							member->Link(member->GetNorth());
 						else
 							member->Link(member->GetDown());
