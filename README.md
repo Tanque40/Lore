@@ -1,6 +1,6 @@
 # Lore Engine
 
-**Lore Engine** es un motor de juegos cross-platform enfocado en manipulación voxel y raytracing mediante Sparse Voxel Octrees (SVO), construido con C++23 y un sistema de renderizado multi-API (OpenGL 4.1 en Windows, Apple Metal en macOS).
+**Lore Engine** es un motor de juegos cross-platform enfocado en manipulación voxel y raytracing mediante Sparse Voxel Octrees (SVO), construido con C++23 y un sistema de renderizado multi-API (OpenGL 4.6 en Windows, Apple Metal en macOS).
 
 El proyecto cuenta con un **pipeline compute-first completo** incluyendo compute shaders, framebuffers offscreen, cámara FPS en perspectiva, un sistema SVO funcional, generación procedural de laberintos 2D/3D, un compositor dockeable con ImGui, y selección automática de API gráfica por plataforma.
 
@@ -8,7 +8,7 @@ El proyecto cuenta con un **pipeline compute-first completo** incluyendo compute
 
 ## Características Implementadas
 
-- **Soporte Cross-Platform**: Windows (x64) con OpenGL 4.1 y macOS (ARM64) con Apple Metal
+- **Soporte Cross-Platform**: Windows (x64) con OpenGL 4.6 (contexto compatibility, GLSL 460; los compute shaders requieren 4.3+) y macOS (ARM64) con Apple Metal. En macOS no se usa OpenGL: Apple lo dejó en 4.1, que no tiene compute shaders
 - **Multi-API Rendering**: Selección automática de backend gráfico en tiempo de compilación (OpenGL / Metal)
 - **Compute Shader Pipeline**: Dispatch de compute shaders con texturas de escritura/lectura y blit a pantalla completa
 - **Framebuffer Offscreen**: Renderizado a textura con resize dinámico e integración en viewport ImGui
@@ -973,7 +973,7 @@ SVO (módulo de Sparse Voxel Octree en Sandbox)
 | Librería                                       | Versión / Rama | Propósito                                                       |
 | ---------------------------------------------- | -------------- | --------------------------------------------------------------- |
 | [GLFW](https://www.glfw.org/)                  | —              | Creación de ventanas, contexto gráfico, input nativo            |
-| [GLAD](https://glad.dav1d.de/)                 | OpenGL 4.1     | Loader de funciones OpenGL (solo Windows)                       |
+| [GLAD](https://glad.dav1d.de/)                 | OpenGL 4.1 + extensiones | Loader de funciones OpenGL (solo Windows). Generado para 4.1 con extensiones (compute, SSBO); habrá que regenerarlo para 4.6 al pasar a SPIR-V |
 | [Dear ImGui](https://github.com/ocornut/imgui) | Rama docking   | GUI inmediata con docking y multi-viewports                     |
 | [spdlog](https://github.com/gabime/spdlog)     | Header-only    | Logging rápido con formato y colores                            |
 | [glm](https://github.com/g-truc/glm)           | —              | Matemáticas (vectores, matrices) para cámara y transformaciones |
@@ -996,7 +996,7 @@ SVO (módulo de Sparse Voxel Octree en Sandbox)
 | Logging (spdlog)             | Completo  | Logger dual Core (`LORE`) / Client (`APP`) con macros                                            |
 | Sistema de Capas             | Completo  | `LayerStack` con capas normales y overlays. Propagación inversa de eventos                       |
 | Integración ImGui            | Completo  | Dockspace con auto-layout, viewport de framebuffer, backends GLFW + OpenGL3 + Metal              |
-| Contexto OpenGL              | Completo  | OpenGL 4.1, GLAD loader, info de GPU al inicio                                                   |
+| Contexto OpenGL              | Completo  | Contexto OpenGL 4.6 compatibility, GLAD loader, info de GPU al inicio                            |
 | **Backend Metal**            | Completo  | Apple Metal completo: device, command queue, render/compute pipelines, blit a pantalla           |
 | **Selección de API**         | Completo  | Automática por plataforma: OpenGL en Windows, Metal en macOS                                     |
 | **Renderer Abstraction**     | Completo  | Renderer, RenderCommand, RendererAPI con Draw + Compute + Blit                                   |
@@ -1235,21 +1235,21 @@ Maze/
 #include "Maze/Algorithms/Wilsons.h"
 #include "Maze/Algorithms/Sidewinder.h"
 
+// Semilla explícita: la misma semilla produce el mismo laberinto en cualquier plataforma.
+// Si se omite el Random, se usa Maze::Random::Global() (sembrado con std::random_device).
+Maze::Random rng(42);
+
 // === Laberinto 2D ===
 Maze::Grid grid{ 50, 50 };
-grid = Maze::BinaryTree::On(grid);   // sesgo NE
-// grid = Maze::Wilsons::On(grid);   // uniforme, sin sesgo
-// grid = Maze::Sidewinder::On(grid); // sesgo horizontal
+grid = Maze::BinaryTree::On(grid, rng);   // sesgo NE
+// grid = Maze::Wilsons::On(grid, rng);   // uniforme, sin sesgo
+// grid = Maze::Sidewinder::On(grid, rng); // sesgo horizontal
 std::string mazeString = grid.ToString();
 
 // === Laberinto 3D ===
 Maze::Grid3D grid3D(5, 5, 5);
-Maze::BinaryTree::On(&grid3D);
+Maze::Wilsons::On(&grid3D, rng);
 std::string maze3DString = grid3D.ToString();
-
-// Convertir a matriz de enteros (útil para voxelización)
-auto intMatrix = grid3D.ToIntMatrix3D();
-std::string matrixStr = Maze::Grid3D::IntMatrix3DToString(intMatrix);
 
 // Mostrar en ImGui
 ImGui::Text("%s", mazeString.c_str());
@@ -1299,6 +1299,23 @@ Luego abrir `Lore.slnx` en Visual Studio y compilar. El proyecto `Sandbox` está
 make config=debug_macosx-aarch64
 ./bin/Debug-macosx-AARCH64/Sandbox/Sandbox
 ```
+
+### Pruebas de laberintos
+
+`Tests/` contiene `MazeTests`, un ejecutable de consola que verifica que los tres algoritmos
+(2D y 3D) generen laberintos perfectos (todas las celdas alcanzables, celdas − 1 pasillos,
+enlaces sólo entre vecinas) en grids cúbicos y no cúbicos, y que la misma semilla dé el mismo
+laberinto. Premake lo genera junto con `Sandbox`. También se puede compilar a mano sin el resto
+del engine (sólo necesita el header de Dear ImGui que incluye `sndbxpch.h`):
+
+```bash
+g++ -std=c++20 -ISandbox/src -ILore/vendor/IMGUI \
+    Tests/src/MazeTests.cpp Sandbox/src/Maze/Base/*.cpp Sandbox/src/Maze/Algorithms/*.cpp \
+    -o maze-tests && ./maze-tests
+```
+
+GitHub Actions (`.github/workflows/tests.yml`) las corre en cada push con AddressSanitizer, que
+además detecta fugas de memoria.
 
 ---
 
