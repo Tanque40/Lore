@@ -1,27 +1,51 @@
-name: Maze tests
+name: Engine tests
 
 on:
   push:
   pull_request:
 
 jobs:
-  maze-tests:
+  engine-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Sólo hace falta el header de Dear ImGui (sndbxpch.h lo incluye); el resto de
-      # dependencias (GLFW, spdlog, glm) no se usa en estas pruebas.
-      - name: Init ImGui submodule
-        run: git submodule update --init --depth 1 Lore/vendor/IMGUI
+      # Sólo hacen falta headers: spdlog (Log.h) y glm. GLFW, GLAD e ImGui no se usan en
+      # estas pruebas (LORE_HEADLESS: sin ventana ni GPU).
+      - name: Init submodules
+        run: git submodule update --init --depth 1 Lore/vendor/spdlog Lore/vendor/glm
 
       - name: Build
         run: >
-          g++ -std=c++20 -Wall -O1 -g -fsanitize=address,undefined
-          -ISandbox/src -ILore/vendor/IMGUI
-          Tests/src/MazeTests.cpp Sandbox/src/Maze/Base/*.cpp Sandbox/src/Maze/Algorithms/*.cpp
-          -o maze-tests
+          g++ -std=c++20 -Wall -O1 -g -fsanitize=address,undefined -pthread
+          -DLORE_HEADLESS
+          -ITests/src -ILore/src -ILore/vendor/spdlog/include -ILore/vendor/glm
+          Tests/src/*.cpp
+          Lore/src/Lore/Log.cpp Lore/src/Lore/Core/JobSystem.cpp
+          Lore/src/Lore/ProcGen/Maze/Base/*.cpp Lore/src/Lore/ProcGen/Maze/Algorithms/*.cpp
+          Lore/src/Lore/World/SVO.cpp Lore/src/Lore/World/VoxelGrid.cpp
+          -o engine-tests
 
       # AddressSanitizer también reporta fugas de memoria al terminar.
       - name: Run
-        run: ./maze-tests
+        run: ./engine-tests
+
+  # Data races en el JobSystem y en el SVOBuilder paralelo.
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Init submodules
+        run: git submodule update --init --depth 1 Lore/vendor/spdlog Lore/vendor/glm
+      - name: Build
+        run: >
+          g++ -std=c++20 -O1 -g -fsanitize=thread -pthread
+          -DLORE_HEADLESS
+          -ITests/src -ILore/src -ILore/vendor/spdlog/include -ILore/vendor/glm
+          Tests/src/*.cpp
+          Lore/src/Lore/Log.cpp Lore/src/Lore/Core/JobSystem.cpp
+          Lore/src/Lore/ProcGen/Maze/Base/*.cpp Lore/src/Lore/ProcGen/Maze/Algorithms/*.cpp
+          Lore/src/Lore/World/SVO.cpp Lore/src/Lore/World/VoxelGrid.cpp
+          -o engine-tests-tsan
+      - name: Run
+        run: ./engine-tests-tsan

@@ -1,6 +1,7 @@
--- Pruebas de los generadores de laberintos. Ejecutable de consola independiente: compila
--- sólo los fuentes de Sandbox/src/Maze (no enlaza Lore, GLFW ni la GPU), así que corre en
--- cualquier máquina y en CI. Salida 0 = todo pasa.
+-- Pruebas del motor sin ventana ni GPU: laberintos (ProcGen), vóxeles y SVO (World) y el
+-- JobSystem. Ejecutable de consola independiente: compila sólo esos fuentes de Lore (no
+-- enlaza GLFW ni la GPU, LORE_HEADLESS), así que corre en cualquier máquina y en CI.
+-- Salida 0 = todo pasa. `MazeTests --bench` además mide el SVOBuilder.
 project "MazeTests"
 	kind "ConsoleApp"
 	language "C++"
@@ -9,15 +10,24 @@ project "MazeTests"
 	objdir ("../bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files {
+		"src/**.h",
 		"src/**.cpp",
-		"../Sandbox/src/Maze/**.h",
-		"../Sandbox/src/Maze/**.cpp",
+		"../Lore/src/Lore/Log.cpp",
+		"../Lore/src/Lore/Core/JobSystem.cpp",
+		"../Lore/src/Lore/ProcGen/**.h",
+		"../Lore/src/Lore/ProcGen/**.cpp",
+		"../Lore/src/Lore/World/SVO.cpp",
+		"../Lore/src/Lore/World/VoxelGrid.cpp",
 	}
 
 	includedirs {
-		"../Sandbox/src",
-		"../%{IncludeDirs.IMGUI}"
+		"src",
+		"../Lore/src",
+		"../%{IncludeDirs.spdlog}",
+		"../%{IncludeDirs.glm}"
 	}
+
+	defines { "LORE_HEADLESS" }
 
 	filter "system:macosx"
 		cppdialect "C++latest"

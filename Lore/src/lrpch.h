@@ -12,6 +12,16 @@
 #include <ostream>
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <array>
+#include <iomanip>
+#include <random>
+#include <cmath>
+#include <cstdint>
+#include <atomic>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 #ifdef LORE_PLATFORM_WINDOWS
 #include <Windows.h>

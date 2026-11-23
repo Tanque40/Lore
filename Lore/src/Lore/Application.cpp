@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "Lore/Renderer/Framebuffer.h"
 #include "Lore/Renderer/RenderCommand.h"
+#include "Lore/Core/JobSystem.h"
 
 namespace Lore {
 
@@ -13,6 +14,9 @@ namespace Lore {
 	Application::Application() {
 		LR_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
+
+		// Antes que cualquier capa: las escenas cargan en segundo plano con el JobSystem.
+		JobSystem::Init();
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
@@ -28,6 +32,10 @@ namespace Lore {
 	}
 
 	Application::~Application() {
+		// Las capas (y las escenas, que pueden tener una carga en curso) se destruyen antes
+		// de detener el JobSystem: el SceneManager cancela y espera su trabajo al destruirse.
+		m_LayerStack.Clear();
+		JobSystem::Shutdown();
 		delete m_Framebuffer;
 	}
 

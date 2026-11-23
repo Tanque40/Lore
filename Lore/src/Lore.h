@@ -7,6 +7,11 @@
 #include "Lore/Log.h"
 
 #include "Lore/Core/TimeStep.h"
+#include "Lore/Core/JobSystem.h"
+
+#include "Lore/Scene/Scene.h"
+#include "Lore/Scene/LoadingScene.h"
+#include "Lore/Scene/SceneManager.h"
 
 #include "Lore/MouseButtonCodes.h"
 #include "Lore/KeyCodes.h"
