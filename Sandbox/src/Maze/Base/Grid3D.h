@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Maze/Base/Cell3D.h"
+#include "Maze/Base/Random.h"
+
+#include <memory>
 
 namespace Maze {
 
@@ -8,6 +11,9 @@ namespace Maze {
 	private:
 		uint32_t m_Rows, m_Columns, m_Levels;
 		std::vector<std::vector<std::vector<Cell3D*>>> m_Grid;
+		// Dueño real de las celdas (ver Grid::m_Cells): las copias de Grid3D comparten las
+		// celdas y la memoria se libera con la última copia.
+		std::shared_ptr<std::vector<std::unique_ptr<Cell3D>>> m_Cells;
 
 	public:
 		Grid3D(uint32_t rows, uint32_t columns, uint32_t levels) : m_Rows(rows), m_Columns(columns), m_Levels(levels) {
@@ -20,7 +26,7 @@ namespace Maze {
 
 		void PrepareGrid();
 		void ConfigureCells();
-		Cell3D* RandomCell();
+		Cell3D* RandomCell(Random& rng = Random::Global());
 		void EachLevel(std::function<void(std::vector<std::vector<Cell3D*>>)> callback);
 		void EachRow(std::function<void(std::vector<Cell3D*>)> callback);
 		void EachCell(std::function<void(Cell3D*)> callback);

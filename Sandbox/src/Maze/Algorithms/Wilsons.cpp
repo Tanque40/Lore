@@ -4,22 +4,22 @@
 
 namespace Maze {
 
-	Grid Wilsons::On(Grid grid) {
+	Grid Wilsons::On(Grid grid, Random& rng) {
 		std::vector<Cell*> unvisited;
 		grid.EachCell([&](Cell* cell) {
 			unvisited.push_back(cell);
 			});
 
-		Cell* first = unvisited[std::rand() % unvisited.size()];
+		Cell* first = unvisited[rng.Range(static_cast<uint32_t>(unvisited.size()))];
 		unvisited.erase(std::remove(unvisited.begin(), unvisited.end(), first), unvisited.end());
 
 		while (!unvisited.empty()) {
-			Cell* cell = unvisited[std::rand() % unvisited.size()];
+			Cell* cell = unvisited[rng.Range(static_cast<uint32_t>(unvisited.size()))];
 			std::vector<Cell*> path{ cell };
 
 			while (std::find(unvisited.begin(), unvisited.end(), cell) != unvisited.end()) {
 				std::vector<Cell*> neighbors = cell->GetNeighbors();
-				cell = neighbors[std::rand() % neighbors.size()];
+				cell = neighbors[rng.Range(static_cast<uint32_t>(neighbors.size()))];
 
 				auto it = std::find(path.begin(), path.end(), cell);
 				if (it != path.end()) {
@@ -46,22 +46,22 @@ namespace Maze {
 	// asi que la misma caminata aleatoria con borrado de bucles funciona sin
 	// cambios sobre el grafo 3D: sigue siendo un arbol de expansion muestreado
 	// de forma uniforme entre todas las celdas, ahora en las 6 direcciones.
-	void Wilsons::On(Grid3D* grid) {
+	void Wilsons::On(Grid3D* grid, Random& rng) {
 		std::vector<Cell3D*> unvisited;
 		grid->EachCell([&](Cell3D* cell) {
 			unvisited.push_back(cell);
 			});
 
-		Cell3D* first = unvisited[std::rand() % unvisited.size()];
+		Cell3D* first = unvisited[rng.Range(static_cast<uint32_t>(unvisited.size()))];
 		unvisited.erase(std::remove(unvisited.begin(), unvisited.end(), first), unvisited.end());
 
 		while (!unvisited.empty()) {
-			Cell3D* cell = unvisited[std::rand() % unvisited.size()];
+			Cell3D* cell = unvisited[rng.Range(static_cast<uint32_t>(unvisited.size()))];
 			std::vector<Cell3D*> path{ cell };
 
 			while (std::find(unvisited.begin(), unvisited.end(), cell) != unvisited.end()) {
 				std::vector<Cell*> neighbors = cell->GetNeighbors();
-				cell = (Cell3D*)neighbors[std::rand() % neighbors.size()];
+				cell = (Cell3D*)neighbors[rng.Range(static_cast<uint32_t>(neighbors.size()))];
 
 				auto it = std::find(path.begin(), path.end(), cell);
 				if (it != path.end()) {
