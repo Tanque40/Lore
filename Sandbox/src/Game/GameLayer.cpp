@@ -10,9 +10,10 @@ GameLayer::~GameLayer() {
 }
 
 void GameLayer::OnAttach() {
-	m_Width = Lore::Application::Get().GetWindow().GetWidth();
-	m_Height = Lore::Application::Get().GetWindow().GetHeight();
-	m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
+	// El compute shader traza un rayo por píxel REAL del framebuffer (en Retina/HiDPI es
+	// mayor que el tamaño de la ventana en puntos), escalado por m_RenderScale.
+	m_ComputeTexture.reset(Lore::ComputeTexture::Create(1, 1));
+	ResizeComputeTarget();
 
 	// Posiciones expresadas en índices de vóxel de la escena de muestra, convertidas a
 	// unidades de mundo con m_VoxelScale para que la vista quede igual de encuadrada
@@ -146,10 +147,63 @@ bool GameLayer::CameraMouseScroll(Lore::MouseScrolledEvent event) {
 }
 
 bool GameLayer::WindowResize(Lore::WindowResizeEvent& event) {
-	m_Width = event.GetWidth();
-	m_Height = event.GetHeight();
-	m_ComputeTexture->Resize(m_Width, m_Height);
+	// El evento trae el tamaño en puntos; ResizeComputeTarget lee el tamaño real del
+	// framebuffer en píxeles (la ventana ya lo actualizó antes de disparar el evento).
+	ResizeComputeTarget();
 	return false;
+}
+
+void GameLayer::ResizeComputeTarget() {
+	Lore::Window& window = Lore::Application::Get().GetWindow();
+	uint32_t framebufferWidth = window.GetFramebufferWidth();
+	uint32_t framebufferHeight = window.GetFramebufferHeight();
+	if (framebufferWidth == 0 || framebufferHeight == 0) {
+		// Ventana minimizada o tamaño de framebuffer aún no disponible.
+		framebufferWidth = window.GetWidth();
+		framebufferHeight = window.GetHeight();
+	}
+
+	float scale = std::clamp(m_RenderScale, 0.1f, 1.0f);
+	m_Width = std::max(1u, static_cast<uint32_t>(framebufferWidth * scale));
+	m_Height = std::max(1u, static_cast<uint32_t>(framebufferHeight * scale));
+	m_ComputeTexture->Resize(m_Width, m_Height);
+}
+
+void GameLayer::GenerateMaze3D(void (*algorithm)(Maze::Grid3D*, Maze::Random&)) {
+	m_Grid3D = Maze::Grid3D(m_Grid3DDimension, m_Grid3DDimension, m_Grid3DDimension);
+	Maze::Random rng(m_MazeSeed);
+	algorithm(&m_Grid3D, rng);
+	m_Grid3DString = m_Grid3D.ToString();
+
+	m_VoxelGrid = m_VoxelGrid.CastToVoxels(&m_Grid3D, 256);
+
+	m_WorldSize = static_cast<float>(m_VoxelGrid.GetSize());
+	m_MaxLevels = std::log2(m_WorldSize);
+
+	m_SVOData = m_SVOBuilder.Build(m_VoxelGrid);
+	m_VoxelGrid.Clear();
+
+	uint32_t bufferSize = static_cast<uint32_t>(m_SVOData.size() * sizeof(SVO::SVONode));
+	// Lo enlazamos al slot 0 (binding=0)
+	svoBuffer.reset(Lore::StorageBuffer::Create(bufferSize, 0));
+	svoBuffer->SetData(m_SVOData.data(), bufferSize);
+
+	// Fuera del laberinto todo es piedra sólida: la cámara tiene que arrancar DENTRO del
+	// primer pasillo tallado (la celda de entrada), no en su posición libre anterior, o
+	// quedaría embebida en roca.
+	Maze::Cell3D* entryCell = m_Grid3D(0, 0, 0);
+	float entryIndexCenter = static_cast<float>(SVO::VoxelGrid::kCellsPerAxis) * 0.5f;
+	glm::vec3 entryVoxelCenter = glm::vec3(entryIndexCenter) * m_VoxelScale;
+	glm::vec3 lookDir = { 1.0f, 0.0f, 0.0f };
+	if (entryCell->IsLinked(entryCell->GetEast())) {
+		lookDir = { 1.0f, 0.0f, 0.0f };
+	} else if (entryCell->IsLinked(entryCell->GetUp())) {
+		lookDir = { 0.0f, 1.0f, 0.0f };
+	} else if (entryCell->IsLinked(entryCell->GetSouth())) {
+		lookDir = { 0.0f, 0.0f, 1.0f };
+	}
+	m_Camera.SetPosition(entryVoxelCenter);
+	m_Camera.SetDirection(lookDir);
 }
 
 bool GameLayer::KeyPressed(Lore::KeyPressedEvent event) {
