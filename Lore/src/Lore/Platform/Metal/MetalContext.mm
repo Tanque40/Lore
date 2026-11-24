@@ -9,6 +9,7 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#include <cstdlib>
 
 namespace Lore {
 
@@ -87,6 +88,13 @@ namespace Lore {
 		metalLayer.device = device;
 		metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 		metalLayer.framebufferOnly = YES;
+
+		// LORE_NO_VSYNC=1 desactiva la sincronización con la pantalla para medir el costo real
+		// del frame (con vsync todo se ve como 60/120 FPS). Sólo para pruebas: puede haber tearing.
+		if (std::getenv("LORE_NO_VSYNC")) {
+			metalLayer.displaySyncEnabled = NO;
+			LR_CORE_WARN("LORE_NO_VSYNC: vsync desactivado en Metal");
+		}
 
 		// Get framebuffer size for proper retina scaling
 		int width, height;

@@ -1317,7 +1317,7 @@ VoxelTrace.comp ──glslangValidator -G──▶ .gl.spv ──(OpenGL, GL_ARB
 - Los generados se versionan: el proyecto compila aunque no tengas las herramientas. Para
   editar shaders instala `brew install glslang spirv-cross` (Mac) o el Vulkan SDK (Windows).
 - No edites `Shaders/bin` a mano. CI verifica que la fuente compile a SPIR-V y a MSL.
-- `LORE_LOG_FPS=1 ./Sandbox/bin/...` registra el FPS promedio cada 2 s.
+- `LORE_LOG_FPS=1 ./Sandbox/bin/...` registra el FPS promedio cada 2 s; en Mac `LORE_NO_VSYNC=1` quita el tope de vsync para medir el costo real.
 
 ### Pruebas del motor
 
