@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lore/World/SVO.h"
+#include "Lore/World/VoxelShaderTypes.h"
 
 #include "Lore/Renderer/ComputeShader.h"
 #include "Lore/Renderer/ComputeTexture.h"
@@ -34,6 +35,7 @@ namespace Lore {
 		std::shared_ptr<ComputeShader> m_ComputeShader;
 		std::shared_ptr<ComputeTexture> m_ComputeTexture;
 		std::shared_ptr<StorageBuffer> m_SVOBuffer;
+		std::shared_ptr<UniformBuffer> m_FrameBuffer; // GPU::FrameData, binding LORE_BINDING_FRAME_DATA
 		size_t m_NodeCount = 0;
 
 		// Tamaño real y profundidad del octree actualmente subido a la GPU (el shader
@@ -48,6 +50,8 @@ namespace Lore {
 		uint32_t m_Height = 1;
 
 	public:
+		// computeShaderPath: ruta base del shader compilado, sin extensión (cada backend
+		// agrega la suya: .metal en Mac, .gl.spv / .gl.glsl en OpenGL).
 		explicit VoxelRenderer(const std::string& computeShaderPath);
 
 		// Sube el octree a la GPU reemplazando el anterior. worldSize = lado del grid en

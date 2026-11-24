@@ -1,37 +1,29 @@
 #version 460 core
 
-// 1. Configuración del grupo de hilos (Workgroup size)
+// Ray marcher del SVO. ÚNICA fuente para todas las plataformas: Scripts/CompileShaders.py la
+// compila a SPIR-V con glslangValidator (OpenGL la carga con GL_ARB_gl_spirv) y spirv-cross
+// genera el .metal para macOS. No editar los archivos de Shaders/bin a mano.
+
+#extension GL_GOOGLE_include_directive : require
+#include "Lore/World/VoxelShaderTypes.h"
+
+// 1. Configuración del grupo de hilos (Workgroup size). Debe coincidir con el dispatch de
+// VoxelRenderer (16x16) y con MetalRendererAPI::DispatchCompute.
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-// Estructuras
-struct SVONode {
-	// Bits 0-7: Valid, Bits 8-15: Leaf, Bits 16-23: Coverage (bits 24-31 sin usar).
-	// Coverage es la fracción (0-255) de vóxeles sólidos en TODO el subárbol de este nodo;
-	// material en un nodo rama guarda el color PROMEDIO de ese subárbol. Ambos sólo importan
-	// para el LOD por distancia (ver TraceRay): renderizar el nodo como un bloque aproximado
-	// en vez de bajar hasta el detalle exacto cuando ya está lejos.
-	uint descriptor;
-	uint childIndex; // Rango completo de 32 bits (no empaquetado en descriptor)
-	uint material;
-};
-
 // Buffers y Texturas
-layout(rgba8, binding = 0) uniform writeonly image2D outputTexture;
+layout(rgba8, binding = LORE_BINDING_OUTPUT_IMAGE) uniform writeonly image2D outputTexture;
 
-layout(std430, binding = 0) readonly buffer NodeBuffer {
-	SVONode nodes[];
+// SVONodeGPU: bits 0-7 de descriptor = Valid, 8-15 = Leaf, 16-23 = Coverage (fracción 0-255
+// de vóxeles sólidos en TODO el subárbol). material en un nodo rama guarda el color PROMEDIO
+// del subárbol. Coverage y el promedio sólo importan para el LOD por distancia (TraceRay).
+layout(std430, binding = LORE_BINDING_SVO_NODES) readonly buffer NodeBuffer {
+	SVONodeGPU nodes[];
 };
 
-uniform vec3 u_CameraPos;
-uniform vec3 u_CameraDir;
-uniform vec3 u_CameraUp;
-uniform vec3 u_CameraRight;
-uniform float u_Fov;
-uniform float u_WorldSize;
-uniform float u_MaxLevels;
-uniform float u_VoxelScale;
-uniform float u_LodPixelThreshold;
-uniform float u_LodCoverageThreshold;
+layout(std140, binding = LORE_BINDING_FRAME_DATA) uniform FrameBlock {
+	FrameData u_Frame;
+};
 
 // Función auxiliar para decodificar color
 vec4 DecodificarColor(uint material) {
@@ -213,11 +205,16 @@ void main() {
 		return;
 	}
 
-	float worldSize = u_WorldSize;
-	int maxLevels = int(u_MaxLevels);
-	float voxelScale = u_VoxelScale;
-	float lodPixelThreshold = u_LodPixelThreshold;
-	float lodCoverageThreshold = u_LodCoverageThreshold;
+	vec3 cameraPos = u_Frame.CameraPos.xyz;
+	vec3 cameraDir = u_Frame.CameraDir.xyz;
+	vec3 cameraUp = u_Frame.CameraUp.xyz;
+	vec3 cameraRight = u_Frame.CameraRight.xyz;
+	float fov = u_Frame.Fov;
+	float worldSize = u_Frame.WorldSize;
+	int maxLevels = int(u_Frame.MaxLevels);
+	float voxelScale = u_Frame.VoxelScale;
+	float lodPixelThreshold = u_Frame.LodPixelThreshold;
+	float lodCoverageThreshold = u_Frame.LodCoverageThreshold;
 
 	// Supersampling 2x2: disparamos 4 rayos con sub-desplazamiento dentro del píxel y
 	// promediamos el color, para suavizar los bordes en diente de sierra de las
@@ -231,11 +228,11 @@ void main() {
 			vec2 uv = ((vec2(gridPos) + subOffset) / vec2(dims)) * 2.0 - 1.0;
 			uv.x *= float(dims.x) / float(dims.y);
 
-			vec3 rayDir = normalize(u_CameraDir +
-				uv.x * u_CameraRight * u_Fov +
-				uv.y * u_CameraUp * u_Fov);
+			vec3 rayDir = normalize(cameraDir +
+				uv.x * cameraRight * fov +
+				uv.y * cameraUp * fov);
 
-			colorAccum += TraceRay(u_CameraPos, rayDir, worldSize, maxLevels, voxelScale, lodPixelThreshold, lodCoverageThreshold);
+			colorAccum += TraceRay(cameraPos, rayDir, worldSize, maxLevels, voxelScale, lodPixelThreshold, lodCoverageThreshold);
 		}
 	}
 

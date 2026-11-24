@@ -35,6 +35,7 @@ namespace Lore {
 		void* m_BlitPipelineState = nullptr;       // id<MTLRenderPipelineState> for blit
 		const void* m_ComputeUniformData = nullptr;
 		size_t m_ComputeUniformSize = 0;
+		uint32_t m_ComputeUniformIndex = 1;
 
 		// Compute buffer bindings (staged before DispatchCompute)
 		void* m_ComputeBuffers[8] = {};
@@ -74,7 +75,9 @@ namespace Lore {
 		void SetCurrentComputeTexture(void* texture) { m_CurrentComputeTexture = texture; }
 		void* GetCurrentComputePipeline() const { return m_CurrentComputePipeline; }
 		void* GetCurrentComputeTexture() const { return m_CurrentComputeTexture; }
-		void SetComputeUniforms(const void* data, size_t size) { m_ComputeUniformData = data; m_ComputeUniformSize = size; }
+		// Bytes para [[buffer(index)]] del siguiente dispatch (setBytes).
+		void SetComputeUniforms(const void* data, size_t size, uint32_t index = 1) { m_ComputeUniformData = data; m_ComputeUniformSize = size; m_ComputeUniformIndex = index; }
+		uint32_t GetComputeUniformIndex() const { return m_ComputeUniformIndex; }
 		const void* GetComputeUniformData() const { return m_ComputeUniformData; }
 		size_t GetComputeUniformSize() const { return m_ComputeUniformSize; }
 

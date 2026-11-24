@@ -49,3 +49,15 @@ jobs:
           -o engine-tests-tsan
       - name: Run
         run: ./engine-tests-tsan
+
+  # La fuente única de shaders tiene que compilar a SPIR-V (OpenGL y Vulkan) y a MSL.
+  shaders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install glslang and spirv-cross
+        run: sudo apt-get update && sudo apt-get install -y glslang-tools spirv-cross spirv-tools
+      - name: Compile shaders
+        run: python3 Scripts/CompileShaders.py --check
+      - name: Validate committed SPIR-V
+        run: for f in Sandbox/src/Shaders/bin/*.gl.spv; do spirv-val --target-env opengl4.5 "$f"; done

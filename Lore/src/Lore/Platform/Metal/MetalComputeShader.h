@@ -8,34 +8,11 @@
 
 namespace Lore {
 
-	// TODO figuring out a better way to handle uniforms in Metal compute shaders, since we can't set them directly like in OpenGL. For now, we'll just store them in a struct and pass a pointer to it as a buffer.
+	// Carga el .metal que genera Scripts/CompileShaders.py (spirv-cross) a partir de la fuente
+	// GLSL única. Los datos por frame llegan en un UniformBuffer, no con SetUniform*.
 	class MetalComputeShader : public ComputeShader {
 
 	public:
-
-		// Padded to match Metal float3 alignment (16 bytes per float3)
-		struct Uniforms {
-			glm::vec3 cameraPos;
-			float _pad0 = 0;
-			glm::vec3 cameraDir;
-			float _pad1 = 0;
-			glm::vec3 cameraUp;
-			float _pad2 = 0;
-			glm::vec3 cameraRight;
-			float _pad3 = 0;
-			float fov;
-			float worldSize = 256.0f;
-			float maxLevels = 8.0f;
-			float voxelScale = 1.0f;
-			float lodPixelThreshold = 0.02f;
-			float lodCoverageThreshold = 0.05f;
-			// En MSL el struct Uniforms mide 96 bytes: los float3 se alinean a 16, asi que el
-			// tamaño total se redondea a multiplo de 16. Sin este relleno el de C++ mide 88 y
-			// la capa de validacion de Metal (MTL_DEBUG_LAYER=1) aborta en el dispatch.
-			float _pad4[2] = { 0.0f, 0.0f };
-		};
-
-
 		MetalComputeShader(const std::string& computePath);
 		virtual ~MetalComputeShader();
 
@@ -59,8 +36,6 @@ namespace Lore {
 	private:
 		void* m_Library = nullptr;               // id<MTLLibrary>
 		void* m_ComputePipelineState = nullptr;  // id<MTLComputePipelineState>
-
-		Uniforms m_Uniforms;
 	};
 
 }

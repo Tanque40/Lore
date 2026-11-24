@@ -13,6 +13,7 @@ namespace Lore {
 	VoxelRenderer::VoxelRenderer(const std::string& computeShaderPath) {
 		m_ComputeShader.reset(ComputeShader::Create(computeShaderPath));
 		m_ComputeTexture.reset(ComputeTexture::Create(1, 1));
+		m_FrameBuffer.reset(UniformBuffer::Create(sizeof(GPU::FrameData), LORE_BINDING_FRAME_DATA));
 
 		// Por defecto trazamos tantos píxeles como puntos tiene la ventana: en Retina eso es
 		// 0.5, en una pantalla 1x es 1.0. Subir a 1.0 en Retina da nitidez completa pero 4x
@@ -29,12 +30,12 @@ namespace Lore {
 		m_MaxLevels = worldSize > 0 ? std::log2(m_WorldSize) : 0.0f;
 
 		// Un SVO vacío (todo aire) igual necesita la raíz para que el shader lea algo válido.
+		static_assert(sizeof(SVO::SVONode) == sizeof(GPU::SVONodeGPU), "SVONode debe coincidir con el layout del shader");
 		static const SVO::SVONode kEmptyRoot = { 0, 0, 0 };
 		const void* data = nodes.empty() ? &kEmptyRoot : nodes.data();
 		uint32_t bufferSize = static_cast<uint32_t>(std::max<size_t>(nodes.size(), 1) * sizeof(SVO::SVONode));
 
-		// Lo enlazamos al slot 0 (binding=0)
-		m_SVOBuffer.reset(StorageBuffer::Create(bufferSize, 0));
+		m_SVOBuffer.reset(StorageBuffer::Create(bufferSize, LORE_BINDING_SVO_NODES));
 		m_SVOBuffer->SetData(data, bufferSize);
 	}
 
@@ -42,22 +43,27 @@ namespace Lore {
 		if (!m_SVOBuffer)
 			return;
 
-		m_SVOBuffer->Bind(0);
+		m_SVOBuffer->Bind(LORE_BINDING_SVO_NODES);
 
 		// 1. Bind compute resources
 		m_ComputeShader->Bind();
-		m_ComputeTexture->BindAsImage(0);
+		m_ComputeTexture->BindAsImage(LORE_BINDING_OUTPUT_IMAGE);
 
-		m_ComputeShader->SetUniform3f("u_CameraPos", camera.GetPosition());
-		m_ComputeShader->SetUniform3f("u_CameraDir", camera.GetDirection());
-		m_ComputeShader->SetUniform3f("u_CameraUp", camera.GetUp());
-		m_ComputeShader->SetUniform3f("u_CameraRight", camera.GetRight());
-		m_ComputeShader->SetUniform1f("u_Fov", glm::radians(camera.GetFov()));
-		m_ComputeShader->SetUniform1f("u_WorldSize", m_WorldSize);
-		m_ComputeShader->SetUniform1f("u_MaxLevels", m_MaxLevels);
-		m_ComputeShader->SetUniform1f("u_VoxelScale", settings.VoxelScale);
-		m_ComputeShader->SetUniform1f("u_LodPixelThreshold", settings.LodPixelThreshold);
-		m_ComputeShader->SetUniform1f("u_LodCoverageThreshold", settings.LodCoverageThreshold);
+		// Todo lo que antes eran uniforms sueltos viaja en un solo bloque con el mismo layout
+		// en C++, GLSL (std140) y MSL.
+		GPU::FrameData frame{};
+		frame.CameraPos = glm::vec4(camera.GetPosition(), 0.0f);
+		frame.CameraDir = glm::vec4(camera.GetDirection(), 0.0f);
+		frame.CameraUp = glm::vec4(camera.GetUp(), 0.0f);
+		frame.CameraRight = glm::vec4(camera.GetRight(), 0.0f);
+		frame.Fov = glm::radians(camera.GetFov());
+		frame.WorldSize = m_WorldSize;
+		frame.MaxLevels = m_MaxLevels;
+		frame.VoxelScale = settings.VoxelScale;
+		frame.LodPixelThreshold = settings.LodPixelThreshold;
+		frame.LodCoverageThreshold = settings.LodCoverageThreshold;
+		m_FrameBuffer->SetData(&frame, sizeof(frame));
+		m_FrameBuffer->Bind();
 
 		// 2. Dispatch compute shader
 		uint32_t groupsX = (m_Width + 15) / 16;

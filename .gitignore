@@ -53,3 +53,6 @@ imgui.ini
 
 # debug information files
 *.dwo
+
+# Shaders compilados (Scripts/CompileShaders.py): se versionan a propósito
+!Sandbox/src/Shaders/bin/

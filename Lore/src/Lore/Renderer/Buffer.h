@@ -133,4 +133,19 @@ namespace Lore {
 
 		static StorageBuffer* Create(uint32_t size, uint32_t binding);
 	};
+
+	// Bloque de constantes pequeño (<= 4 KB) que los shaders leen como
+	// `layout(std140, binding = N) uniform ...`. Reemplaza a los uniforms sueltos: SPIR-V no
+	// los admite fuera de un bloque y así ambos backends suben exactamente el mismo struct
+	// (ver Lore/World/VoxelShaderTypes.h). SetData copia los bytes; Bind los deja listos para
+	// el siguiente dispatch en el binding con el que se creó.
+	class UniformBuffer {
+	public:
+		virtual ~UniformBuffer() = default;
+
+		virtual void Bind() const = 0;
+		virtual void SetData(const void* data, uint32_t size) = 0;
+
+		static UniformBuffer* Create(uint32_t size, uint32_t binding);
+	};
 }

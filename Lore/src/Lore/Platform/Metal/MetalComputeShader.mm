@@ -15,7 +15,11 @@ namespace Lore {
 
 		id<MTLDevice> device = (__bridge id<MTLDevice>)context->GetDevice();
 
-		std::string computeSource = ReadFile(computePath);
+		// computePath es la ruta base del shader compilado (sin extensión): el MSL generado
+		// por spirv-cross está junto al .spv con extensión .metal.
+		std::string metalPath = computePath + ".metal";
+		std::string computeSource = ReadFile(metalPath);
+		LR_CORE_ASSERT(!computeSource.empty(), "No se encontró el shader Metal (¿corriste Scripts/CompileShaders.py?)");
 
 		NSString* source = [NSString stringWithUTF8String:computeSource.c_str()];
 		NSError* error = nil;
@@ -45,7 +49,7 @@ namespace Lore {
 		}
 		m_ComputePipelineState = (__bridge_retained void*)pipelineState;
 
-		LR_CORE_INFO("Metal compute shader loaded successfully from: {0}", computePath);
+		LR_CORE_INFO("Metal compute shader loaded successfully from: {0}", metalPath);
 	}
 
 	MetalComputeShader::~MetalComputeShader() {
@@ -64,7 +68,6 @@ namespace Lore {
 		MetalContext* context = MetalContext::Get();
 		if (context) {
 			context->SetCurrentComputePipeline(m_ComputePipelineState);
-			context->SetComputeUniforms(&m_Uniforms, sizeof(Uniforms));
 		}
 	}
 
@@ -75,50 +78,14 @@ namespace Lore {
 		}
 	}
 
-	void MetalComputeShader::SetUniform1f(const std::string& name, float value) {
-		if (name == "u_Fov") {
-			m_Uniforms.fov = value;
-		} else if (name == "u_WorldSize") {
-			m_Uniforms.worldSize = value;
-		} else if (name == "u_MaxLevels") {
-			m_Uniforms.maxLevels = value;
-		} else if (name == "u_VoxelScale") {
-			m_Uniforms.voxelScale = value;
-		} else if (name == "u_LodPixelThreshold") {
-			m_Uniforms.lodPixelThreshold = value;
-		} else if (name == "u_LodCoverageThreshold") {
-			m_Uniforms.lodCoverageThreshold = value;
-		}
-	}
-
-	void MetalComputeShader::SetUniform2f(const std::string& name, const glm::vec2& vector){
-
-	}
-
-	void MetalComputeShader::SetUniform3f(const std::string& name, const glm::vec3& vector) {
-		if (name == "u_CameraPos") {
-			m_Uniforms.cameraPos = vector;
-		} else if (name == "u_CameraDir") {
-			m_Uniforms.cameraDir = vector;
-		} else if (name == "u_CameraUp") {
-			m_Uniforms.cameraUp = vector;
-		} else if (name == "u_CameraRight") {
-			m_Uniforms.cameraRight = vector;
-		}
-	}
-
-	void MetalComputeShader::SetUniform4f(const std::string& name, const glm::vec4& vector){
-
-	}
-
-	void MetalComputeShader::SetUniformMat3f(const std::string& name, const glm::mat3& matrix) {
-
-	}
-
-
-	void MetalComputeShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {
-
-	}
+	// SPIR-V no admite uniforms sueltos: todo va en un UniformBuffer (ver
+	// Lore/World/VoxelShaderTypes.h). Estos quedan por la interfaz de Shader.
+	void MetalComputeShader::SetUniform1f(const std::string& name, float value) {}
+	void MetalComputeShader::SetUniform2f(const std::string& name, const glm::vec2& vector) {}
+	void MetalComputeShader::SetUniform3f(const std::string& name, const glm::vec3& vector) {}
+	void MetalComputeShader::SetUniform4f(const std::string& name, const glm::vec4& vector) {}
+	void MetalComputeShader::SetUniformMat3f(const std::string& name, const glm::mat3& matrix) {}
+	void MetalComputeShader::SetUniformMat4f(const std::string& name, const glm::mat4& matrix) {}
 
 }
 

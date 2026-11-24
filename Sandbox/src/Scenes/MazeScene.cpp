@@ -17,13 +17,22 @@ namespace {
 		return "?";
 	}
 
-	// Ruta del compute shader relativa a la raíz del repo (desde donde se corre el
-	// ejecutable en Mac) o a Sandbox/ (directorio de trabajo de Visual Studio).
+	// Ruta base del ray marcher compilado (Scripts/CompileShaders.py genera .gl.spv, .gl.glsl
+	// y .metal junto a ella). El ejecutable se corre desde la raíz del repo en Mac y desde
+	// Sandbox/ en Visual Studio: probamos ambas.
+	std::string ComputeShaderPath() {
+		const char* candidates[] = { "Sandbox/src/Shaders/bin/VoxelTrace.comp", "src/Shaders/bin/VoxelTrace.comp" };
 #ifdef LORE_PLATFORM_MAC
-	constexpr const char* kComputeShaderPath = "Sandbox/src/Shaders/Metal/Main.compute.metal";
+		const char* probe = ".metal";
 #else
-	constexpr const char* kComputeShaderPath = "src/Shaders/OpenGL/Main.compute.glsl";
+		const char* probe = ".gl.spv";
 #endif
+		for (const char* candidate : candidates)
+			if (std::ifstream(std::string(candidate) + probe).good())
+				return candidate;
+		LR_ERROR("No encontré Shaders/bin/VoxelTrace.comp{0}: corre la app desde la raíz del repo o desde Sandbox/", probe);
+		return candidates[0];
+	}
 
 }
 
@@ -167,7 +176,7 @@ void MazeScene::OnAttach() {
 	// GameLayer al arrancar); las regeneraciones posteriores dejan el cursor como esté.
 	bool firstScene = !m_Session->Renderer;
 	if (firstScene)
-		m_Session->Renderer = std::make_shared<Lore::VoxelRenderer>(kComputeShaderPath);
+		m_Session->Renderer = std::make_shared<Lore::VoxelRenderer>(ComputeShaderPath());
 
 	// Si la ventana cambió de tamaño durante la carga, el evento lo recibió la pantalla de
 	// carga y no nosotros.

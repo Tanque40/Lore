@@ -2,6 +2,7 @@
 
 #ifdef __APPLE__
 #include <cstdint>
+#include <vector>
 
 #include "Lore/Renderer/Buffer.h"
 
@@ -54,6 +55,20 @@ namespace Lore {
 		virtual void Bind(uint32_t slot) const override;
 		virtual void Unbind() const override;
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
+	};
+
+	// Se sube con setBytes en cada dispatch (Metal copia los bytes al codificar), así que la
+	// CPU puede reescribirlo el siguiente frame sin esperar a que la GPU termine el anterior.
+	class MetalUniformBuffer : public UniformBuffer {
+	private:
+		std::vector<uint8_t> m_Data;
+		uint32_t m_Binding;
+
+	public:
+		MetalUniformBuffer(uint32_t size, uint32_t binding);
+
+		virtual void Bind() const override;
+		virtual void SetData(const void* data, uint32_t size) override;
 	};
 }
 

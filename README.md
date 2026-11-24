@@ -835,15 +835,14 @@ Lore/                          # Raíz del workspace
 │       │   ├── SandboxSession.h       # Estado compartido entre escenas (renderer, cámara, UI)
 │       │   ├── MazeScene.h/.cpp       # WorldRecipe, OnLoad (CPU, en hilo) / OnAttach (GPU), cámara
 │       │   └── MazeScene_ImGui.cpp    # Paneles Stats/Maze/Camera/LOD/Voxel
-│       └── Shaders/           # Shaders duales por plataforma
-│           ├── OpenGL/
-│           │   ├── Main.vertex.glsl    # Vertex shader GLSL
-│           │   ├── Main.fragment.glsl  # Fragment shader GLSL
-│           │   └── Main.compute.glsl   # Compute shader: SVO raytracing
-│           └── Metal/
-│               ├── Main.vertex.metal   # Vertex shader MSL
-│               ├── Main.fragment.metal # Fragment shader MSL
-│               └── Main.compute.metal  # Compute shader: SVO raytracing
+│       └── Shaders/
+│           ├── src/
+│           │   └── VoxelTrace.comp     # ÚNICA fuente del ray marcher (GLSL 460)
+│           ├── bin/                    # Generado por Scripts/CompileShaders.py (versionado)
+│           │   ├── VoxelTrace.comp.gl.spv   # SPIR-V para OpenGL (GL_ARB_gl_spirv)
+│           │   ├── VoxelTrace.comp.gl.glsl  # Respaldo si el driver no soporta SPIR-V
+│           │   └── VoxelTrace.comp.metal    # MSL generado por spirv-cross
+│           ├── OpenGL/ y Metal/        # Main.vertex/fragment (raster, sin uso por ahora)
 │
 ├── Tests/                     # MazeTests: laberintos, SVO y JobSystem sin GPU (LORE_HEADLESS)
 │
@@ -1301,6 +1300,25 @@ make config=debug -j8
 ./Sandbox/bin/Debug-macosx-AARCH64/Sandbox/Sandbox
 ```
 
+### Shaders (una sola fuente, SPIR-V)
+
+Los compute shaders se escriben una vez en GLSL 460 (`Sandbox/src/Shaders/src/*.comp`) y
+`Scripts/CompileShaders.py` los compila en el build (premake lo llama antes del Sandbox):
+
+```text
+VoxelTrace.comp ──glslangValidator -G──▶ .gl.spv ──(OpenGL, GL_ARB_gl_spirv)
+               │                            └─spirv-cross──▶ .gl.glsl (respaldo)
+               └─glslangValidator -V──▶ SPIR-V ──spirv-cross --msl──▶ .metal (Metal)
+```
+
+- Los datos por frame van en un uniform buffer (`FrameData`), no en uniforms sueltos. El struct
+  vive en `Lore/src/Lore/World/VoxelShaderTypes.h`, que incluyen tanto C++ como el shader, así
+  que el layout no puede divergir.
+- Los generados se versionan: el proyecto compila aunque no tengas las herramientas. Para
+  editar shaders instala `brew install glslang spirv-cross` (Mac) o el Vulkan SDK (Windows).
+- No edites `Shaders/bin` a mano. CI verifica que la fuente compile a SPIR-V y a MSL.
+- `LORE_LOG_FPS=1 ./Sandbox/bin/...` registra el FPS promedio cada 2 s.
+
 ### Pruebas del motor
 
 `Tests/` contiene `MazeTests`, un ejecutable de consola sin ventana ni GPU (`LORE_HEADLESS`) que verifica:
@@ -1443,7 +1461,7 @@ auto [x, y] = Lore::Input::GetMousePosition();
 
 // Crear compute shader (plataforma automática)
 auto computeShader = std::shared_ptr<Lore::ComputeShader>(
-    Lore::ComputeShader::Create("path/to/shader.metal"));  // o .glsl
+    Lore::ComputeShader::Create("Sandbox/src/Shaders/bin/VoxelTrace.comp"));  // ruta base: cada backend agrega .metal o .gl.spv
 
 // Crear textura de compute (RGBA8)
 auto computeTexture = std::shared_ptr<Lore::ComputeTexture>(

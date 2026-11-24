@@ -76,4 +76,23 @@ namespace Lore {
 		return nullptr;
 	}
 
+	UniformBuffer* UniformBuffer::Create(uint32_t size, uint32_t binding) {
+		switch (Renderer::GetAPI()) {
+		case RendererAPI::API::None:
+			LR_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
+			return nullptr;
+#ifdef LORE_PLATFORM_WINDOWS
+		case RendererAPI::API::OpenGL:
+			return new OpenGLUniformBuffer(size, binding);
+#endif
+#ifdef LORE_PLATFORM_MAC
+		case RendererAPI::API::Metal:
+			return new MetalUniformBuffer(size, binding);
+#endif
+		}
+
+		LR_CORE_ASSERT(false, "Unknown RendererAPI!");
+		return nullptr;
+	}
+
 }
