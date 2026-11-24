@@ -41,6 +41,12 @@ private:
 	float m_FPS = 0.0f;
 	float m_FrameTime = 0.0f;
 
+	// Con la variable de entorno LORE_LOG_FPS definida, se registra el FPS promedio cada
+	// 2 s (para comparar rendimiento entre versiones sin tener que leer el panel).
+	bool m_LogFPS = false;
+	float m_FPSWindowTime = 0.0f;
+	uint32_t m_FPSWindowFrames = 0;
+
 public:
 	MazeScene(std::shared_ptr<SandboxSession> session, WorldRecipe recipe);
 

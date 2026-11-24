@@ -7,6 +7,8 @@
 #include <array>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
+#include <cstdlib>
 
 #include <random>
 #include <cmath>

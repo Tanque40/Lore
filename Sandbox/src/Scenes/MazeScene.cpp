@@ -39,6 +39,7 @@ std::string WorldRecipe::Describe() const {
 
 MazeScene::MazeScene(std::shared_ptr<SandboxSession> session, WorldRecipe recipe)
 	: Scene(recipe.Describe()), m_Session(std::move(session)), m_Recipe(recipe) {
+	m_LogFPS = std::getenv("LORE_LOG_FPS") != nullptr;
 }
 
 // =========================================================================================
@@ -194,6 +195,18 @@ void MazeScene::Regenerate(const WorldRecipe& recipe) {
 void MazeScene::OnUpdate(Lore::TimeStep ts) {
 	m_FrameTime = ts.GetSeconds();
 	m_FPS = m_FrameTime > 0.0f ? 1.0f / m_FrameTime : 0.0f;
+
+	if (m_LogFPS) {
+		m_FPSWindowTime += m_FrameTime;
+		m_FPSWindowFrames++;
+		if (m_FPSWindowTime >= 2.0f) {
+			Lore::VoxelRenderer& renderer = *m_Session->Renderer;
+			LR_INFO("FPS promedio: {0:.1f} ({1:.2f} ms) a {2}x{3}", m_FPSWindowFrames / m_FPSWindowTime,
+				1000.0f * m_FPSWindowTime / m_FPSWindowFrames, renderer.GetWidth(), renderer.GetHeight());
+			m_FPSWindowTime = 0.0f;
+			m_FPSWindowFrames = 0;
+		}
+	}
 
 	CameraMovement(ts);
 	CameraMouseMovement();
