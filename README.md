@@ -1295,6 +1295,8 @@ Luego abrir `Lore.slnx` en Visual Studio y compilar. El proyecto `Sandbox` está
 
 # Compilar y ejecutar
 make config=debug -j8
+# Si ya tenías un build anterior a la Fase 1 (Maze/SVO se movieron a Lore/), borra los
+# .d viejos o make busca las rutas antiguas: rm -rf bin-int Sandbox/bin-int Lore/bin-int
 # Ejecutar desde la raíz del repo (los shaders se cargan con ruta relativa)
 ./Sandbox/bin/Debug-macosx-AARCH64/Sandbox/Sandbox
 ```
