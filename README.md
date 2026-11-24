@@ -16,7 +16,9 @@ El proyecto cuenta con un **pipeline compute-first completo** incluyendo compute
 - **Cámara Ortográfica**: OrthographicCamera con posición, rotación y matrices View/Projection
 - **Cámara en Perspectiva (FPS)**: PerspectiveCamera con movimiento WASD, Yaw/Pitch por ratón, FOV ajustable y velocidad configurable
 - **Delta Time (TimeStep)**: Clase `TimeStep` con delta time por frame, pasado a `Layer::OnUpdate()`
-- **Sparse Voxel Octree (SVO)**: VoxelGrid (256³), SVOBuilder recursivo, empaquetado GPU-ready de 8 bytes por nodo
+- **Sparse Voxel Octree (SVO)**: VoxelGrid (256³), SVOBuilder de abajo hacia arriba (una pasada sobre el grid, en paralelo), nodos GPU-ready de 12 bytes
+- **Escenas y pantalla de carga**: `SceneManager` con `Scene::OnLoad` en un hilo del `JobSystem` (generar laberinto → vóxeles → SVO) y `OnAttach` en el hilo principal para subir a la GPU; mientras tanto se ve `LoadingScene` con barra de progreso
+- **JobSystem**: pool de hilos con `Submit`/`JobHandle` y `ParallelFor`
 - **Generación de Laberintos 2D/3D**: Grid/Grid3D con algoritmos BinaryTree, Wilson's y Sidewinder
 - **StorageBuffer**: Buffer de almacenamiento GPU (SSBO en OpenGL, MTLBuffer en Metal) para datos arbitrarios
 - **Control de Cursor**: `HideCursor()`/`ShowCursor()` para modo FPS con captura de ratón
@@ -38,49 +40,10 @@ El proyecto cuenta con un **pipeline compute-first completo** incluyendo compute
 graph TB
     subgraph Sandbox["Sandbox (ConsoleApp)"]
         SandboxApp["Sandbox : Application"]
-        GameLayerNode["GameLayer : Layer"]
-        SandboxApp -->|PushLayer| GameLayerNode
-
-        subgraph ComputeDemo["Compute-First Pipeline"]
-            CompShader["ComputeShader"]
-            CompTexture["ComputeTexture"]
-            SBuf["StorageBuffer<br/><i>SVO data → GPU</i>"]
-            CompShader --> CompTexture
-            CompShader --> SBuf
-        end
-        GameLayerNode --> ComputeDemo
-
-        subgraph CameraModule["Camera"]
-            PerspCam["PerspectiveCamera<br/><i>FPS: WASD + Mouse</i>"]
-        end
-        GameLayerNode --> CameraModule
-
-        subgraph MazeModule["Maze Module"]
-            MazeGrid["Grid<br/><i>matriz 2D de celdas</i>"]
-            MazeGrid3D["Grid3D<br/><i>matriz 3D de celdas</i>"]
-            MazeCell["Cell<br/><i>conexiones N/S/E/W</i>"]
-            MazeCell3D["Cell3D<br/><i>Cell + Up/Down</i>"]
-            BinaryTree["BinaryTree<br/><i>2D y 3D</i>"]
-            Wilsons["Wilsons<br/><i>random walk sin loops</i>"]
-            Sidewinder["Sidewinder<br/><i>generación por filas</i>"]
-            MazeGrid -->|contiene| MazeCell
-            MazeGrid3D -->|contiene| MazeCell3D
-            MazeCell3D -->|hereda| MazeCell
-            BinaryTree -->|genera| MazeGrid
-            BinaryTree -->|genera| MazeGrid3D
-            Wilsons -->|genera| MazeGrid
-            Sidewinder -->|genera| MazeGrid
-        end
-        GameLayerNode --> MazeModule
-
-        subgraph SVOModule["SVO Module"]
-            VoxelGridNode["VoxelGrid<br/><i>256³ grid volumétrico</i>"]
-            SVOBuilderNode["SVOBuilder<br/><i>construcción recursiva</i>"]
-            SVONodeStruct["SVONode<br/><i>8 bytes GPU-packed</i>"]
-            VoxelGridNode -->|input| SVOBuilderNode
-            SVOBuilderNode -->|genera| SVONodeStruct
-        end
-        GameLayerNode --> SVOModule
+        SessionNode["SandboxSession<br/><i>renderer, cámara, valores de UI</i>"]
+        MazeSceneNode["MazeScene : Scene<br/><i>OnLoad en hilo, OnAttach sube a GPU</i>"]
+        SandboxApp -->|PushLayer SceneManager<br/>LoadAsync| MazeSceneNode
+        MazeSceneNode --> SessionNode
     end
 
     subgraph LoreEngine["Lore Engine (StaticLib)"]
@@ -91,6 +54,31 @@ graph TB
             Log["Log<br/><i>spdlog wrapper</i>"]
             CoreH["Core.h<br/><i>macros, asserts</i>"]
             TimeStepClass["TimeStep<br/><i>delta time</i>"]
+            JobSystemNode["JobSystem<br/><i>pool de hilos, ParallelFor</i>"]
+        end
+
+        subgraph SceneModule["Scene"]
+            SceneManagerNode["SceneManager : Layer<br/><i>escena activa + transiciones</i>"]
+            SceneNode["Scene<br/><i>OnLoad / OnAttach / OnUpdate</i>"]
+            LoadingSceneNode["LoadingScene<br/><i>barra de progreso</i>"]
+            SceneManagerNode -->|LoadAsync: OnLoad en| JobSystemNode
+            SceneManagerNode --> SceneNode
+            SceneManagerNode --> LoadingSceneNode
+        end
+
+        subgraph ProcGenModule["ProcGen"]
+            MazeGrid3D["Grid / Grid3D + Cell / Cell3D"]
+            MazeAlgos["BinaryTree, Sidewinder, Wilsons<br/><i>2D y 3D, con semilla</i>"]
+            MazeAlgos -->|genera| MazeGrid3D
+        end
+
+        subgraph WorldModule["World"]
+            VoxelGridNode["VoxelGrid<br/><i>grid denso + CastToVoxels (cueva)</i>"]
+            SVOBuilderNode["SVOBuilder<br/><i>de abajo hacia arriba, paralelo</i>"]
+            VoxelRendererNode["VoxelRenderer<br/><i>compute ray marcher del SVO</i>"]
+            VoxelGridNode -->|input| SVOBuilderNode
+            SVOBuilderNode -->|SVONode| VoxelRendererNode
+            MazeGrid3D -->|CastToVoxels| VoxelGridNode
         end
 
         subgraph LayerSystem["Layer System"]
@@ -656,7 +644,7 @@ sequenceDiagram
     participant Win as Window (GLFW)
     participant FB as Framebuffer
     participant LS as LayerStack
-    participant GL as GameLayer
+    participant GL as SceneManager → MazeScene
     participant Cam as PerspectiveCamera
     participant CS as ComputeShader
     participant CT as ComputeTexture
@@ -669,7 +657,8 @@ sequenceDiagram
     EP->>App: CreateApplication()
     EP->>App: Run()
 
-    Note over GL: OnAttach(): Build VoxelGrid → SVOBuilder → StorageBuffer
+    Note over GL: LoadAsync: LoadingScene activa; OnLoad en el JobSystem (laberinto → VoxelGrid → SVOBuilder)
+    Note over GL: Al terminar: OnAttach() en el hilo principal sube el SVO al StorageBuffer
 
     loop Game Loop (while m_Running)
         Note over App: Calcular TimeStep (delta time)
@@ -759,7 +748,23 @@ Lore/                          # Raíz del workspace
 │   │       ├── Window.h             # Interfaz pura de ventana (+Framebuffer sizes)
 │   │       │
 │   │       ├── Core/
-│   │       │   └── TimeStep.h       # Delta time (seconds / milliseconds)
+│   │       │   ├── TimeStep.h       # Delta time (seconds / milliseconds)
+│   │       │   └── JobSystem.h/.cpp # Pool de hilos: Submit, JobHandle, ParallelFor
+│   │       │
+│   │       ├── Scene/               # Escenas y carga en segundo plano
+│   │       │   ├── Scene.h          # OnLoad (hilo) / OnAttach (GPU) / OnUpdate / OnImGuiRender
+│   │       │   ├── LoadContext.h    # Progreso, fase y cancelación entre hilos
+│   │       │   ├── LoadingScene.h/.cpp  # Pantalla de carga con barra de progreso
+│   │       │   └── SceneManager.h/.cpp  # Layer con la escena activa; SetScene / LoadAsync
+│   │       │
+│   │       ├── ProcGen/Maze/        # Laberintos 2D/3D con semilla
+│   │       │   ├── Base/            # Cell, Cell3D, Grid, Grid3D, Random
+│   │       │   └── Algorithms/      # BinaryTree, Sidewinder, Wilsons
+│   │       │
+│   │       ├── World/               # Vóxeles
+│   │       │   ├── VoxelGrid.h/.cpp     # Grid denso, cueva sobre el laberinto, espeleotemas
+│   │       │   ├── SVO.h/.cpp           # SVOBuilder de abajo hacia arriba + SVONode
+│   │       │   └── VoxelRenderer.h/.cpp # Ray marcher del SVO en compute shader
 │   │       │
 │   │       ├── Events/              # Sistema de eventos
 │   │       │   ├── Event.h          # Base abstracta + EventDispatcher
@@ -824,35 +829,22 @@ Lore/                          # Raíz del workspace
 │
 ├── Sandbox/                   # Aplicación de ejemplo (ConsoleApp)
 │   └── src/
-│       ├── SandboxApp.cpp     # Entry point: crea GameLayer
+│       ├── SandboxApp.cpp     # Entry point: SceneManager + primera MazeScene
 │       ├── sndbxpch.h / .cpp  # Precompiled header del Sandbox
-│       ├── Game/              # Capa principal de juego
-│       │   ├── GameLayer.h          # Declaración: cámara, SVO, maze, compute
-│       │   ├── GameLayer.cpp        # OnAttach, OnUpdate, OnEvent, controles FPS
-│       │   ├── GamLayer_ImGUI.cpp   # OnImGuiRender: paneles Stats/Maze/Camera/Voxel
-│       │   └── GameObject.h         # Placeholder para sistema de objetos
-│       ├── Shaders/           # Shaders duales por plataforma
-│       │   ├── OpenGL/
-│       │   │   ├── Main.vertex.glsl    # Vertex shader GLSL
-│       │   │   ├── Main.fragment.glsl  # Fragment shader GLSL
-│       │   │   └── Main.compute.glsl   # Compute shader: SVO raytracing
-│       │   └── Metal/
-│       │       ├── Main.vertex.metal   # Vertex shader MSL
-│       │       ├── Main.fragment.metal # Fragment shader MSL
-│       │       └── Main.compute.metal  # Compute shader: SVO raytracing
-│       ├── Maze/              # Sistema de generación de laberintos
-│       │   ├── Base/
-│       │   │   ├── Cell.h/.cpp     # Celda 2D con enlaces N/S/E/W
-│       │   │   ├── Cell3D.h/.cpp   # Celda 3D: hereda Cell + Up/Down
-│       │   │   ├── Grid.h/.cpp     # Matriz 2D + iteradores + ToString()
-│       │   │   └── Grid3D.h/.cpp   # Matriz 3D + ToIntMatrix3D()
-│       │   └── Algorithms/
-│       │       ├── BinaryTree.h/.cpp   # Generador con sesgo NE (2D y 3D)
-│       │       ├── Wilsons.h/.cpp      # Random walk sin loops
-│       │       └── Sidewinder.h/.cpp   # Generación por filas
-│       └── SVO/               # Sparse Voxel Octree
-│           ├── VoxelGrid.h    # Grid volumétrico 256³ en CPU
-│           └── SVO.h          # SVOBuilder + SVONode (8 bytes GPU-packed)
+│       ├── Scenes/
+│       │   ├── SandboxSession.h       # Estado compartido entre escenas (renderer, cámara, UI)
+│       │   ├── MazeScene.h/.cpp       # WorldRecipe, OnLoad (CPU, en hilo) / OnAttach (GPU), cámara
+│       │   └── MazeScene_ImGui.cpp    # Paneles Stats/Maze/Camera/LOD/Voxel
+│       └── Shaders/
+│           ├── src/
+│           │   └── VoxelTrace.comp     # ÚNICA fuente del ray marcher (GLSL 460)
+│           ├── bin/                    # Generado por Scripts/CompileShaders.py (versionado)
+│           │   ├── VoxelTrace.comp.gl.spv   # SPIR-V para OpenGL (GL_ARB_gl_spirv)
+│           │   ├── VoxelTrace.comp.gl.glsl  # Respaldo si el driver no soporta SPIR-V
+│           │   └── VoxelTrace.comp.metal    # MSL generado por spirv-cross
+│           ├── OpenGL/ y Metal/        # Main.vertex/fragment (raster, sin uso por ahora)
+│
+├── Tests/                     # MazeTests: laberintos, SVO y JobSystem sin GPU (LORE_HEADLESS)
 │
 ├── Scripts/                   # Scripts de build
 │   └── Macos/
@@ -948,9 +940,13 @@ Layer (base, todos los métodos virtuales son no-op)
 
 Application (singleton, el cliente hereda de esta)
 └── Sandbox (código cliente)
-    └── GameLayer (voxel raytracing FPS demo)
+    └── SceneManager (Layer) → MazeScene (Scene, voxel raytracing FPS demo)
 
-Maze (módulo independiente en Sandbox)
+Scene (base: OnLoad / OnAttach / OnDetach / OnUpdate / OnImGuiRender / OnEvent)
+├── LoadingScene (barra de progreso)
+└── MazeScene (Sandbox)
+
+Maze (módulo ProcGen de Lore)
 ├── Grid (matriz 2D de celdas)
 │   └── Cell (celda con enlaces N/S/E/W)
 ├── Grid3D (matriz 3D de celdas)
@@ -1089,13 +1085,14 @@ gantt
 
 El proyecto **Sandbox** es una aplicación de demostración que muestra las capacidades del motor Lore Engine con un **pipeline compute-first de voxel raytracing**.
 
-### GameLayer
+### MazeScene
 
-La capa principal (`Game/GameLayer`) que implementa:
+La escena principal (`Scenes/MazeScene`), manejada por el `SceneManager`, implementa:
 
 - **Voxel Raytracing por SVO**: Pipeline completo de compute shader que recorre un Sparse Voxel Octree en GPU
 - **Cámara FPS en Perspectiva**: Movimiento WASD, mouse look (Yaw/Pitch), scroll para FOV, velocidad ajustable desde ImGui
-- **Sparse Voxel Octree**: VoxelGrid de 256³ → SVOBuilder recursivo → StorageBuffer GPU con nodos de 8 bytes
+- **Sparse Voxel Octree**: VoxelGrid de 256³ → SVOBuilder (de abajo hacia arriba) → StorageBuffer GPU con nodos de 12 bytes
+- **Carga en segundo plano**: cada botón de "Generar" pide una MazeScene nueva con `LoadAsync`; la ventana sigue respondiendo y muestra una barra de progreso mientras se genera
 - **Framebuffer Offscreen**: Renderizado a textura, visualizado en viewport ImGui con dockspace
 - **Generación de Laberintos 2D/3D**: Tres algoritmos (BinaryTree, Wilson's, Sidewinder) con UI interactiva; BinaryTree también soporta Grid3D
 - **Resize Dinámico**: Compute texture y framebuffer se redimensionan con la ventana
@@ -1297,26 +1294,57 @@ Luego abrir `Lore.slnx` en Visual Studio y compilar. El proyecto `Sandbox` está
 
 # Compilar y ejecutar
 make config=debug -j8
+# Si ya tenías un build anterior a la Fase 1 (Maze/SVO se movieron a Lore/), borra los
+# .d viejos o make busca las rutas antiguas: rm -rf bin-int Sandbox/bin-int Lore/bin-int
 # Ejecutar desde la raíz del repo (los shaders se cargan con ruta relativa)
 ./Sandbox/bin/Debug-macosx-AARCH64/Sandbox/Sandbox
 ```
 
-### Pruebas de laberintos
+### Shaders (una sola fuente, SPIR-V)
 
-`Tests/` contiene `MazeTests`, un ejecutable de consola que verifica que los tres algoritmos
-(2D y 3D) generen laberintos perfectos (todas las celdas alcanzables, celdas − 1 pasillos,
-enlaces sólo entre vecinas) en grids cúbicos y no cúbicos, y que la misma semilla dé el mismo
-laberinto. Premake lo genera junto con `Sandbox`. También se puede compilar a mano sin el resto
-del engine (sólo necesita el header de Dear ImGui que incluye `sndbxpch.h`):
+Los compute shaders se escriben una vez en GLSL 460 (`Sandbox/src/Shaders/src/*.comp`) y
+`Scripts/CompileShaders.py` los compila en el build (premake lo llama antes del Sandbox):
+
+```text
+VoxelTrace.comp ──glslangValidator -G──▶ .gl.spv ──(OpenGL, GL_ARB_gl_spirv)
+               │                            └─spirv-cross──▶ .gl.glsl (respaldo)
+               └─glslangValidator -V──▶ SPIR-V ──spirv-cross --msl──▶ .metal (Metal)
+```
+
+- Los datos por frame van en un uniform buffer (`FrameData`), no en uniforms sueltos. El struct
+  vive en `Lore/src/Lore/World/VoxelShaderTypes.h`, que incluyen tanto C++ como el shader, así
+  que el layout no puede divergir.
+- Los generados se versionan: el proyecto compila aunque no tengas las herramientas. Para
+  editar shaders instala `brew install glslang spirv-cross spirv-tools` (Mac) o el Vulkan SDK (Windows).
+- No edites `Shaders/bin` a mano. CI verifica que la fuente compile a SPIR-V y a MSL.
+- `LORE_LOG_FPS=1 ./Sandbox/bin/...` registra el FPS promedio cada 2 s; en Mac `LORE_NO_VSYNC=1` quita el tope de vsync para medir el costo real.
+
+### Pruebas del motor
+
+`Tests/` contiene `MazeTests`, un ejecutable de consola sin ventana ni GPU (`LORE_HEADLESS`) que verifica:
+
+- que los tres algoritmos (2D y 3D) generen laberintos perfectos (todas las celdas alcanzables,
+  celdas − 1 pasillos, enlaces sólo entre vecinas) en grids cúbicos y no cúbicos, y que la misma
+  semilla dé el mismo laberinto;
+- que el `SVOBuilder` de abajo hacia arriba produzca exactamente los mismos nodos que el
+  constructor recursivo original (ruido, cuevas, espeleotemas, casos borde) y que se pueda cancelar;
+- el `JobSystem` (`Submit`, `ParallelFor`, trabajos anidados con un solo worker) y `LoadContext`.
+
+Premake lo genera junto con `Sandbox` (`make config=debug MazeTests`). `MazeTests --bench` además
+mide el SVOBuilder nuevo contra el recursivo en un mundo de 256³. También se puede compilar a mano:
 
 ```bash
-g++ -std=c++20 -ISandbox/src -ILore/vendor/IMGUI \
-    Tests/src/MazeTests.cpp Sandbox/src/Maze/Base/*.cpp Sandbox/src/Maze/Algorithms/*.cpp \
+git submodule update --init Lore/vendor/spdlog Lore/vendor/glm
+g++ -std=c++20 -O1 -pthread -DLORE_HEADLESS -ITests/src -ILore/src \
+    -ILore/vendor/spdlog/include -ILore/vendor/glm \
+    Tests/src/*.cpp Lore/src/Lore/Log.cpp Lore/src/Lore/Core/JobSystem.cpp \
+    Lore/src/Lore/ProcGen/Maze/Base/*.cpp Lore/src/Lore/ProcGen/Maze/Algorithms/*.cpp \
+    Lore/src/Lore/World/SVO.cpp Lore/src/Lore/World/VoxelGrid.cpp \
     -o maze-tests && ./maze-tests
 ```
 
-GitHub Actions (`.github/workflows/tests.yml`) las corre en cada push con AddressSanitizer, que
-además detecta fugas de memoria.
+GitHub Actions (`.github/workflows/tests.yml`) las corre en cada push con AddressSanitizer (que
+además detecta fugas de memoria) y con ThreadSanitizer (data races del JobSystem y del SVOBuilder).
 
 ---
 
@@ -1324,103 +1352,58 @@ además detecta fugas de memoria.
 
 ### Crear una Aplicación
 
-El motor define `main()` internamente mediante `EntryPoint.h`. Solo necesitas definir `CreateApplication()`:
+El motor define `main()` internamente mediante `EntryPoint.h`. Solo necesitas definir `CreateApplication()`. La lógica del juego vive en escenas que maneja el `SceneManager`:
 
 ```cpp
 #include <Lore.h>
-#include <Lore/Renderer/PerspectiveCamera.h>
-#include <imgui.h>
+#include <Lore/EntryPoint.h>
+#include <Lore/World/VoxelRenderer.h>
 
-class GameLayer : public Lore::Layer {
-private:
-    std::shared_ptr<Lore::ComputeShader> m_ComputeShader;
-    std::shared_ptr<Lore::ComputeTexture> m_ComputeTexture;
-    std::shared_ptr<Lore::StorageBuffer> m_SVOBuffer;
+class WorldScene : public Lore::Scene {
+    std::vector<SVO::SVONode> m_Nodes;
+    uint32_t m_WorldSize = 0;
+    std::unique_ptr<Lore::VoxelRenderer> m_Renderer;
     Lore::PerspectiveCamera m_Camera;
-    uint32_t m_Width = 800, m_Height = 600;
 
 public:
-    GameLayer() : Layer("Game") {
-#ifdef LORE_PLATFORM_MAC
-        m_ComputeShader.reset(Lore::ComputeShader::Create("path/to/shader.metal"));
-#elif defined(LORE_PLATFORM_WINDOWS)
-        m_ComputeShader.reset(Lore::ComputeShader::Create("path/to/shader.glsl"));
-#endif
+    WorldScene() : Scene("Mi mundo") {}
+
+    // Hilo del JobSystem: sólo CPU. El SceneManager muestra la LoadingScene mientras tanto.
+    void OnLoad(Lore::LoadContext& context) override {
+        context.SetStage("Generando vóxeles");
+        SVO::VoxelGrid grid(128);
+        // ... llenar el grid ...
+        context.SetStage("Construyendo SVO");
+        m_Nodes = SVO::SVOBuilder().Build(grid, context.Phase(0.5f, 1.0f));
+        m_WorldSize = grid.GetSize();
     }
 
+    // Hilo principal: crear recursos de GPU con lo que preparó OnLoad.
     void OnAttach() override {
-        m_Width = Lore::Application::Get().GetWindow().GetFramebufferWidth();
-        m_Height = Lore::Application::Get().GetWindow().GetFramebufferHeight();
-        m_ComputeTexture.reset(Lore::ComputeTexture::Create(m_Width, m_Height));
-
-        // Build SVO y subir a GPU via StorageBuffer
-        std::vector<uint32_t> svoData = BuildSVO();
-        m_SVOBuffer.reset(Lore::StorageBuffer::Create(svoData.size() * sizeof(uint32_t), 1));
-        m_SVOBuffer->SetData(svoData.data(), svoData.size() * sizeof(uint32_t));
+        m_Renderer = std::make_unique<Lore::VoxelRenderer>("ruta/al/Main.compute");
+        m_Renderer->Upload(m_Nodes, m_WorldSize);
     }
 
     void OnUpdate(Lore::TimeStep ts) override {
-        // Cámara FPS
-        if (Lore::Input::IsKeyPressed(LR_KEY_W))
-            m_Camera.ProcessKeyboard(Lore::CameraMovement::FORWARD, ts);
-        if (Lore::Input::IsKeyPressed(LR_KEY_S))
-            m_Camera.ProcessKeyboard(Lore::CameraMovement::BACKWARD, ts);
-
-        // Pipeline compute-first con SVO
-        m_ComputeShader->Bind();
-        m_ComputeTexture->BindAsImage(0);
-        m_SVOBuffer->Bind(1);
-
-        // Set camera uniforms...
-        uint32_t groupsX = (m_Width + 15) / 16;
-        uint32_t groupsY = (m_Height + 15) / 16;
-        Lore::RenderCommand::DispatchCompute(groupsX, groupsY, 1);
-        Lore::RenderCommand::ComputeBarrier();
-
-        Lore::RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-        Lore::RenderCommand::Clear();
-        Lore::Renderer::BlitToScreen(m_ComputeTexture);
-    }
-
-    void OnImGuiRender() override {
-        ImGui::Begin("Debug");
-        ImGui::SliderFloat("Speed", m_Camera.GetMovemetSpeedPtr(), 0.0f, 20.0f);
-        ImGui::SliderFloat("FOV", m_Camera.GetFovPtr(), 0.0f, 90.0f);
-        ImGui::End();
-    }
-
-    void OnEvent(Lore::Event& event) override {
-        Lore::EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<Lore::WindowResizeEvent>(
-            [this](Lore::WindowResizeEvent& e) {
-                m_Width = e.GetWidth();
-                m_Height = e.GetHeight();
-                m_ComputeTexture->Resize(m_Width, m_Height);
-                return false;
-            });
-        dispatcher.Dispatch<Lore::KeyPressedEvent>(
-            [this](Lore::KeyPressedEvent& e) {
-                if (e.GetKeyCode() == LR_KEY_ESCAPE) {
-                    Lore::Application::Get().GetWindow().ShowCursor();
-                }
-                return false;
-            });
+        m_Renderer->Render(m_Camera, {});
     }
 };
 
-class MyGame : public Lore::Application {
+class MyApp : public Lore::Application {
 public:
-    MyGame() {
-        PushLayer(new GameLayer());
+    MyApp() {
+        auto* scenes = new Lore::SceneManager();
+        PushLayer(scenes);
+        scenes->LoadAsync<WorldScene>();  // Pantalla de carga hasta que OnLoad termine
     }
 };
 
 Lore::Application* Lore::CreateApplication() {
-    return new MyGame();
+    return new MyApp();
 }
 ```
 
-> **Nota**: `ImGuiLayer` se añade automáticamente como overlay en el constructor de `Application`. El framebuffer offscreen y el dockspace con viewport se gestionan automáticamente.
+Para cambiar de mundo desde la propia escena (p. ej. un botón de ImGui) basta con llamar `LoadAsync` otra vez: la petición se aplica al inicio del siguiente frame, la escena actual se descarta y se ve la pantalla de carga hasta que la nueva esté lista. Ver `Sandbox/src/Scenes/MazeScene.cpp`.
 
 ### Pipeline Tradicional (Raster)
 
@@ -1478,7 +1461,7 @@ auto [x, y] = Lore::Input::GetMousePosition();
 
 // Crear compute shader (plataforma automática)
 auto computeShader = std::shared_ptr<Lore::ComputeShader>(
-    Lore::ComputeShader::Create("path/to/shader.metal"));  // o .glsl
+    Lore::ComputeShader::Create("Sandbox/src/Shaders/bin/VoxelTrace.comp"));  // ruta base: cada backend agrega .metal o .gl.spv
 
 // Crear textura de compute (RGBA8)
 auto computeTexture = std::shared_ptr<Lore::ComputeTexture>(

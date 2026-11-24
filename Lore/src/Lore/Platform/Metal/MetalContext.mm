@@ -9,10 +9,29 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#include <cstdlib>
 
 namespace Lore {
 
 	MetalContext* MetalContext::s_Instance = nullptr;
+
+	// Los objetos del frame actual (drawable, command buffer, encoder, pass descriptor) se
+	// guardan retenidos (__bridge_retained): con un puntero __bridge sin retener, ARC los
+	// libera al salir de BeginFrame y en Release ImGui_ImplMetal_NewFrame leia un descriptor
+	// ya liberado (EXC_BAD_ACCESS en objc_retain).
+	static void ReleaseFrameRef(void*& ref) {
+		if (ref) {
+			CFRelease(ref);
+			ref = nullptr;
+		}
+	}
+
+	static void ReleaseFrameRefs(void*& drawable, void*& encoder, void*& commandBuffer, void*& passDescriptor) {
+		ReleaseFrameRef(encoder);
+		ReleaseFrameRef(commandBuffer);
+		ReleaseFrameRef(passDescriptor);
+		ReleaseFrameRef(drawable);
+	}
 
 	MetalContext::MetalContext(GLFWwindow* windowHandle)
 		: m_WindowHandle(windowHandle) {
@@ -42,13 +61,8 @@ namespace Lore {
 			CFRelease(m_Device);
 			m_Device = nullptr;
 		}
-		// m_Layer, m_CurrentEncoder, m_CurrentCommandBuffer, m_CurrentDrawable
-		// are weak references (__bridge void*), no need to release
-		// m_CurrentComputePipeline, m_CurrentComputeTexture are also weak references
-		m_CurrentEncoder = nullptr;
-		m_CurrentCommandBuffer = nullptr;
-		m_CurrentDrawable = nullptr;
-		m_CurrentPassDescriptor = nullptr;
+		ReleaseFrameRefs(m_CurrentDrawable, m_CurrentEncoder, m_CurrentCommandBuffer, m_CurrentPassDescriptor);
+		// m_Layer, m_CurrentComputePipeline, m_CurrentComputeTexture are weak references
 		m_CurrentComputePipeline = nullptr;
 		m_CurrentComputeTexture = nullptr;
 		m_Layer = nullptr;
@@ -74,6 +88,13 @@ namespace Lore {
 		metalLayer.device = device;
 		metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 		metalLayer.framebufferOnly = YES;
+
+		// LORE_NO_VSYNC=1 desactiva la sincronización con la pantalla para medir el costo real
+		// del frame (con vsync todo se ve como 60/120 FPS). Sólo para pruebas: puede haber tearing.
+		if (std::getenv("LORE_NO_VSYNC")) {
+			metalLayer.displaySyncEnabled = NO;
+			LR_CORE_WARN("LORE_NO_VSYNC: vsync desactivado en Metal");
+		}
 
 		// Get framebuffer size for proper retina scaling
 		int width, height;
@@ -101,6 +122,9 @@ namespace Lore {
 
 	void MetalContext::BeginFrame() {
 		id<MTLCommandQueue> commandQueue = (__bridge id<MTLCommandQueue>)m_CommandQueue;
+		ReleaseFrameRef(m_CurrentEncoder);
+		ReleaseFrameRef(m_CurrentCommandBuffer);
+		ReleaseFrameRef(m_CurrentPassDescriptor);
 
 		if (m_OffscreenTexture) {
 			// Offscreen rendering: target the offscreen texture
@@ -113,15 +137,15 @@ namespace Lore {
 			passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(
 				m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a
 			);
-			m_CurrentPassDescriptor = (__bridge void*)passDescriptor;
+			m_CurrentPassDescriptor = (__bridge_retained void*)passDescriptor;
 
 			id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 			commandBuffer.label = @"LoreOffscreenCommandBuffer";
-			m_CurrentCommandBuffer = (__bridge void*)commandBuffer;
+			m_CurrentCommandBuffer = (__bridge_retained void*)commandBuffer;
 
 			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 			encoder.label = @"LoreOffscreenRenderEncoder";
-			m_CurrentEncoder = (__bridge void*)encoder;
+			m_CurrentEncoder = (__bridge_retained void*)encoder;
 
 			// Set viewport to match offscreen texture size
 			MTLViewport viewport;
@@ -150,7 +174,8 @@ namespace Lore {
 			LR_CORE_ERROR("Failed to get next Metal drawable!");
 			return;
 		}
-		m_CurrentDrawable = (__bridge void*)drawable;
+		ReleaseFrameRef(m_CurrentDrawable);
+		m_CurrentDrawable = (__bridge_retained void*)drawable;
 
 		// Create render pass descriptor
 		MTLRenderPassDescriptor* passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -160,17 +185,17 @@ namespace Lore {
 		passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(
 			m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a
 		);
-		m_CurrentPassDescriptor = (__bridge void*)passDescriptor;
+		m_CurrentPassDescriptor = (__bridge_retained void*)passDescriptor;
 
 		// Create command buffer
 		id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 		commandBuffer.label = @"LoreCommandBuffer";
-		m_CurrentCommandBuffer = (__bridge void*)commandBuffer;
+		m_CurrentCommandBuffer = (__bridge_retained void*)commandBuffer;
 
 		// Create render command encoder
 		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 		encoder.label = @"LoreRenderEncoder";
-		m_CurrentEncoder = (__bridge void*)encoder;
+		m_CurrentEncoder = (__bridge_retained void*)encoder;
 	}
 
 	void MetalContext::EndCurrentPass() {
@@ -187,9 +212,9 @@ namespace Lore {
 		// serializaba CPU y GPU sin aportar correccion.
 		[commandBuffer commit];
 
-		m_CurrentEncoder = nullptr;
-		m_CurrentCommandBuffer = nullptr;
-		m_CurrentPassDescriptor = nullptr;
+		ReleaseFrameRef(m_CurrentEncoder);
+		ReleaseFrameRef(m_CurrentCommandBuffer);
+		ReleaseFrameRef(m_CurrentPassDescriptor);
 	}
 
 	void MetalContext::SwapBuffers() {
@@ -217,10 +242,7 @@ namespace Lore {
 		m_PreviousFrameCommandBuffer = (__bridge_retained void*)commandBuffer;
 
 		// Reset frame state
-		m_CurrentEncoder = nullptr;
-		m_CurrentCommandBuffer = nullptr;
-		m_CurrentDrawable = nullptr;
-		m_CurrentPassDescriptor = nullptr;
+		ReleaseFrameRefs(m_CurrentDrawable, m_CurrentEncoder, m_CurrentCommandBuffer, m_CurrentPassDescriptor);
 	}
 
 	void* MetalContext::GetBlitPipelineState() {

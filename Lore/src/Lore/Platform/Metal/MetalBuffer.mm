@@ -104,6 +104,21 @@ MetalStorageBuffer::MetalStorageBuffer(uint32_t size, uint32_t binding) : m_Bind
 		memcpy(gpuPtr, data, size);
 	}
 
+	MetalUniformBuffer::MetalUniformBuffer(uint32_t size, uint32_t binding) : m_Data(size, 0), m_Binding(binding) {
+		LR_CORE_ASSERT(size <= 4096, "setBytes admite hasta 4 KB; usa un StorageBuffer para más");
+	}
+
+	void MetalUniformBuffer::Bind() const {
+		if (!MetalContext::Get())
+			return;
+		MetalContext::Get()->SetComputeUniforms(m_Data.data(), m_Data.size(), m_Binding);
+	}
+
+	void MetalUniformBuffer::SetData(const void* data, uint32_t size) {
+		LR_CORE_ASSERT(size <= m_Data.size(), "UniformBuffer::SetData: más datos que el tamaño del buffer");
+		memcpy(m_Data.data(), data, size);
+	}
+
 }
 
 #endif // LORE_PLATFORM_MAC

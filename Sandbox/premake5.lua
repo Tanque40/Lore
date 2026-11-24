@@ -11,7 +11,18 @@ project "Sandbox"
 	files{
 		"src/**.h",
 		"src/**.cpp",
+		-- Fuente única de shaders y lo que genera Scripts/CompileShaders.py (sólo para verlos
+		-- en el IDE; se cargan en runtime desde Shaders/bin).
+		"src/Shaders/src/**",
 	}
+
+	-- Compila los shaders (GLSL 460 -> SPIR-V -> MSL) antes del Sandbox. Sólo recompila lo que
+	-- cambió; si faltan glslangValidator/spirv-cross usa los ya compilados en Shaders/bin.
+	filter "system:macosx"
+		prebuildcommands { "python3 \"%{wks.location}/Scripts/CompileShaders.py\"" }
+	filter "system:windows"
+		prebuildcommands { "where python >nul 2>nul && python \"%{wks.location}/Scripts/CompileShaders.py\" || (where python >nul 2>nul && exit /b 1 || echo [shaders] python no encontrado: se usan los shaders ya compilados en Shaders/bin)" }
+	filter {}
 
 	includedirs {
 		"src",

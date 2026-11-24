@@ -108,7 +108,7 @@ namespace Lore {
 
 		const void* uniformData = ctx->GetComputeUniformData();
 		if (uniformData) {
-			[computeEncoder setBytes:uniformData length:ctx->GetComputeUniformSize() atIndex:1];
+			[computeEncoder setBytes:uniformData length:ctx->GetComputeUniformSize() atIndex:ctx->GetComputeUniformIndex()];
 		}
 
 		// Threadgroup size of 16x16x1 — compute shaders should use matching local size
@@ -117,6 +117,13 @@ namespace Lore {
 
 		[computeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
 		[computeEncoder endEncoding];
+
+		std::atomic<float>* gpuMs = &m_LastComputeGpuMs;
+		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> finished) {
+			double seconds = finished.GPUEndTime - finished.GPUStartTime;
+			if (seconds > 0.0)
+				gpuMs->store(static_cast<float>(seconds * 1000.0), std::memory_order_relaxed);
+		}];
 
 		// Sin waitUntilCompleted: el pase de render que lee esta textura se codifica en un
 		// command buffer posterior de la MISMA cola, asi que la GPU lo ejecuta despues de

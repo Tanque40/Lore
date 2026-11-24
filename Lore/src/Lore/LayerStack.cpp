@@ -9,9 +9,14 @@ namespace Lore {
 	}
 
 	LayerStack::~LayerStack() {
-		for (Layer* layer : m_Layers) {
+		Clear();
+	}
+
+	void LayerStack::Clear() {
+		for (Layer* layer : m_Layers)
 			delete layer;
-		}
+		m_Layers.clear();
+		m_LayerInsertIndex = 0;
 	}
 
 	void LayerStack::PushLayer(Layer* layer) {

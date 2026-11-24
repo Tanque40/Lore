@@ -5,6 +5,8 @@
 #elif defined(LORE_PLATFORM_MAC)
 #include <csignal>
 
+#elif defined(LORE_HEADLESS)
+// Compilación sin ventana ni GPU (Tests/): sólo los módulos ProcGen, World (CPU) y JobSystem.
 #else
 #error Lore only supports Windows or Mac!
 #endif

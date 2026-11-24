@@ -5,33 +5,20 @@
 // geométricamente adyacentes. Estas pruebas verifican esas propiedades para cada algoritmo
 // y, además, que la misma semilla produzca exactamente el mismo laberinto.
 //
-// No usa ningún framework: devuelve 0 si todo pasa y 1 si algo falla, para poder correrlo
-// en CI o a mano (ver Tests/premake5.lua y .github/workflows/tests.yml).
+#include "lrpch.h"
 
-#include "sndbxpch.h"
+#include "TestCommon.h"
 
-#include <cstdio>
 #include <queue>
 #include <set>
 
-#include "Maze/Base/Grid.h"
-#include "Maze/Base/Grid3D.h"
-#include "Maze/Algorithms/BinaryTree.h"
-#include "Maze/Algorithms/Sidewinder.h"
-#include "Maze/Algorithms/Wilsons.h"
+#include "Lore/ProcGen/Maze/Base/Grid.h"
+#include "Lore/ProcGen/Maze/Base/Grid3D.h"
+#include "Lore/ProcGen/Maze/Algorithms/BinaryTree.h"
+#include "Lore/ProcGen/Maze/Algorithms/Sidewinder.h"
+#include "Lore/ProcGen/Maze/Algorithms/Wilsons.h"
 
 namespace {
-
-	int g_Failures = 0;
-	int g_Checks = 0;
-
-	void Check(bool condition, const std::string& what) {
-		g_Checks++;
-		if (!condition) {
-			g_Failures++;
-			std::printf("  FALLA: %s\n", what.c_str());
-		}
-	}
 
 	uint32_t Distance(Maze::Cell* a, Maze::Cell* b) {
 		auto diff = [](uint32_t x, uint32_t y) { return x > y ? x - y : y - x; };
@@ -111,7 +98,7 @@ namespace {
 
 }
 
-int main() {
+void RunMazeTests() {
 	const std::vector<std::pair<std::string, Algo2D>> algos2D = {
 		{ "BinaryTree", &Maze::BinaryTree::On },
 		{ "Sidewinder", &Maze::Sidewinder::On },
@@ -160,7 +147,4 @@ int main() {
 			}
 		}
 	}
-
-	std::printf("\n%d de %d verificaciones pasaron\n", g_Checks - g_Failures, g_Checks);
-	return g_Failures == 0 ? 0 : 1;
 }
