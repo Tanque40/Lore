@@ -208,12 +208,20 @@ void MazeScene::OnUpdate(Lore::TimeStep ts) {
 	if (m_LogFPS) {
 		m_FPSWindowTime += m_FrameTime;
 		m_FPSWindowFrames++;
+		float gpuMs = Lore::RenderCommand::GetLastComputeGpuMs();
+		if (gpuMs >= 0.0f) {
+			m_GpuMsSum += gpuMs;
+			m_GpuMsSamples++;
+		}
 		if (m_FPSWindowTime >= 2.0f) {
 			Lore::VoxelRenderer& renderer = *m_Session->Renderer;
-			LR_INFO("FPS promedio: {0:.1f} ({1:.2f} ms) a {2}x{3}", m_FPSWindowFrames / m_FPSWindowTime,
-				1000.0f * m_FPSWindowTime / m_FPSWindowFrames, renderer.GetWidth(), renderer.GetHeight());
+			float gpuAvg = m_GpuMsSamples ? m_GpuMsSum / m_GpuMsSamples : -1.0f;
+			LR_INFO("FPS promedio: {0:.1f} ({1:.2f} ms) | GPU ray marcher: {2:.3f} ms | {3}x{4}", m_FPSWindowFrames / m_FPSWindowTime,
+				1000.0f * m_FPSWindowTime / m_FPSWindowFrames, gpuAvg, renderer.GetWidth(), renderer.GetHeight());
 			m_FPSWindowTime = 0.0f;
 			m_FPSWindowFrames = 0;
+			m_GpuMsSum = 0.0f;
+			m_GpuMsSamples = 0;
 		}
 	}
 

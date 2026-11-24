@@ -27,6 +27,9 @@ namespace Lore {
 		// Compute pipeline
 		virtual void DispatchCompute(uint32_t groupX, uint32_t groupY, uint32_t groupZ) = 0;
 		virtual void ComputeBarrier() = 0;
+		// Tiempo de GPU (ms) del último dispatch de compute que ya terminó, o < 0 si el
+		// backend no lo mide. No depende del vsync ni del foco de la ventana.
+		virtual float GetLastComputeGpuMs() const { return -1.0f; }
 
 		// Blit a compute texture to screen using a full-screen triangle
 		virtual void BlitToScreen(void* nativeTexture, uint32_t width, uint32_t height) = 0;

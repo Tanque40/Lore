@@ -46,6 +46,8 @@ private:
 	bool m_LogFPS = false;
 	float m_FPSWindowTime = 0.0f;
 	uint32_t m_FPSWindowFrames = 0;
+	float m_GpuMsSum = 0.0f;
+	uint32_t m_GpuMsSamples = 0;
 
 public:
 	MazeScene(std::shared_ptr<SandboxSession> session, WorldRecipe recipe);

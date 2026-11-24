@@ -10,6 +10,8 @@ Sandbox/src/Shaders/bin/:
                             el respaldo si un driver no soporta GL_ARB_gl_spirv.
   <Nombre>.<etapa>.metal    MSL para Metal (glslangValidator -V + spirv-cross --msl). Los
                             índices [[buffer(n)]] / [[texture(n)]] son los bindings del GLSL.
+  <Nombre>.<etapa>.hash     Hash de la fuente y los headers con que se generó. Sólo se
+                            recompila si cambia (las fechas de archivo no cuentan).
 
 Los archivos generados se versionan en git para que el proyecto compile aunque no tengas
 las herramientas instaladas. Si editas un shader necesitas:
@@ -27,6 +29,7 @@ generados ya existen, avisa y sigue (no rompe el build); si faltan los generados
 """
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
@@ -72,11 +75,30 @@ def outputs_for(source):
     return [base + ".gl.spv", base + ".gl.glsl", base + ".metal"]
 
 
+def stamp_path(source):
+    return os.path.join(OUT_DIR, os.path.basename(source) + ".hash")
+
+
+def input_hash(source):
+    # Hash del contenido (fuente + headers compartidos), no de las fechas: git checkout
+    # cambia las fechas y no queremos regenerar (con otra versión de spirv-cross) archivos
+    # cuya fuente no cambió.
+    digest = hashlib.sha256()
+    for path in [source] + SHARED_HEADERS:
+        if os.path.isfile(path):
+            with open(path, "rb") as f:
+                digest.update(f.read().replace(b"\r\n", b"\n"))
+    return digest.hexdigest()
+
+
 def is_stale(source, outputs):
     if not all(os.path.isfile(o) for o in outputs):
         return True
-    newest_input = max(os.path.getmtime(p) for p in [source] + SHARED_HEADERS if os.path.isfile(p))
-    return any(os.path.getmtime(o) < newest_input for o in outputs)
+    try:
+        with open(stamp_path(source)) as f:
+            return f.read().strip() != input_hash(source)
+    except OSError:
+        return True
 
 
 def compile_shader(source, stage, glslang, spirv_cross, out_paths):
@@ -134,6 +156,9 @@ def main():
                 ok = compile_shader(source, stage, glslang, spirv_cross, tmp_outputs)
         else:
             ok = compile_shader(source, stage, glslang, spirv_cross, outputs)
+            if ok:
+                with open(stamp_path(source), "w") as f:
+                    f.write(input_hash(source) + "\n")
 
         print("[shaders] %s %s" % ("OK   " if ok else "ERROR", name))
         failed = failed or not ok

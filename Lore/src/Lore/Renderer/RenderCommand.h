@@ -17,6 +17,7 @@ namespace Lore {
 		// Compute pipeline
 		inline static void DispatchCompute(uint32_t groupX, uint32_t groupY, uint32_t groupZ) { s_RendererAPI->DispatchCompute(groupX, groupY, groupZ); }
 		inline static void ComputeBarrier() { s_RendererAPI->ComputeBarrier(); }
+		inline static float GetLastComputeGpuMs() { return s_RendererAPI->GetLastComputeGpuMs(); }
 
 		// Blit a compute texture to screen
 		inline static void BlitToScreen(void* nativeTexture, uint32_t width, uint32_t height) { s_RendererAPI->BlitToScreen(nativeTexture, width, height); }

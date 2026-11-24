@@ -118,6 +118,13 @@ namespace Lore {
 		[computeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
 		[computeEncoder endEncoding];
 
+		std::atomic<float>* gpuMs = &m_LastComputeGpuMs;
+		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> finished) {
+			double seconds = finished.GPUEndTime - finished.GPUStartTime;
+			if (seconds > 0.0)
+				gpuMs->store(static_cast<float>(seconds * 1000.0), std::memory_order_relaxed);
+		}];
+
 		// Sin waitUntilCompleted: el pase de render que lee esta textura se codifica en un
 		// command buffer posterior de la MISMA cola, asi que la GPU lo ejecuta despues de
 		// que termine este compute. Esperar aqui solo bloqueaba la CPU.
