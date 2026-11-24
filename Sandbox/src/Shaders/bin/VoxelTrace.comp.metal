@@ -1,5 +1,3 @@
-#pragma clang diagnostic ignored "-Wmissing-prototypes"
-
 #include <metal_stdlib>
 #include <simd/simd.h>
 
@@ -40,343 +38,404 @@ struct FrameBlock
 
 constant uint3 gl_WorkGroupSize [[maybe_unused]] = uint3(16u, 16u, 1u);
 
-static inline __attribute__((always_inline))
-float3 BoxNormal(thread const float3& indexPos, thread const float3& boxMin, thread const float3& boxMax)
+kernel void compute_main(const device NodeBuffer& _412 [[buffer(0)]], constant FrameBlock& _721 [[buffer(1)]], texture2d<float, access::write> outputTexture [[texture(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
 {
-    float3 distToMin = indexPos - boxMin;
-    float3 distToMax = boxMax - indexPos;
-    float3 normal = float3(-1.0, 0.0, 0.0);
-    float minDist = distToMin.x;
-    if (distToMin.y < minDist)
+    do
     {
-        minDist = distToMin.y;
-        normal = float3(0.0, -1.0, 0.0);
-    }
-    if (distToMin.z < minDist)
-    {
-        minDist = distToMin.z;
-        normal = float3(0.0, 0.0, -1.0);
-    }
-    if (distToMax.x < minDist)
-    {
-        minDist = distToMax.x;
-        normal = float3(1.0, 0.0, 0.0);
-    }
-    if (distToMax.y < minDist)
-    {
-        minDist = distToMax.y;
-        normal = float3(0.0, 1.0, 0.0);
-    }
-    if (distToMax.z < minDist)
-    {
-        minDist = distToMax.z;
-        normal = float3(0.0, 0.0, 1.0);
-    }
-    return normal;
-}
-
-static inline __attribute__((always_inline))
-float4 DecodificarColor(thread const uint& material)
-{
-    float r = float(material & 255u) / 255.0;
-    float g = float((material >> uint(8)) & 255u) / 255.0;
-    float b = float((material >> uint(16)) & 255u) / 255.0;
-    float a = float((material >> uint(24)) & 255u) / 255.0;
-    if (a == 0.0)
-    {
-        return float4(r, g, b, a);
-    }
-    return float4(r, g, b, 1.0);
-}
-
-static inline __attribute__((always_inline))
-float4 ShadeHit(thread float4& baseColor, thread const float3& normal, thread const float3& rayDir, thread const float& distanciaRecorrida, thread const float& maxRenderDistance, thread const float& gamma)
-{
-    float ambient = 0.119999997317790985107421875;
-    float diffuse = fast::max(dot(normal, -rayDir), 0.0);
-    float lighting = ambient + ((1.0 - ambient) * diffuse);
-    float4 _287 = baseColor;
-    float3 _289 = _287.xyz * lighting;
-    baseColor.x = _289.x;
-    baseColor.y = _289.y;
-    baseColor.z = _289.z;
-    float atenuacion = fast::clamp(1.0 - (distanciaRecorrida / maxRenderDistance), 0.0, 1.0);
-    float4 _303 = baseColor;
-    float3 _305 = _303.xyz * atenuacion;
-    baseColor.x = _305.x;
-    baseColor.y = _305.y;
-    baseColor.z = _305.z;
-    float4 _312 = baseColor;
-    float3 _317 = pow(_312.xyz, float3(1.0 / gamma));
-    baseColor.x = _317.x;
-    baseColor.y = _317.y;
-    baseColor.z = _317.z;
-    return baseColor;
-}
-
-static inline __attribute__((always_inline))
-float AABBExitT(thread const float3& origin, thread const float3& dir, thread const float3& boxMin, thread const float3& boxMax)
-{
-    float _104;
-    if (dir.x > 0.0)
-    {
-        _104 = (boxMax.x - origin.x) / dir.x;
-    }
-    else
-    {
-        float _119;
-        if (dir.x < 0.0)
+        int2 _693 = int2(gl_GlobalInvocationID.xy);
+        int2 _699 = int2(outputTexture.get_width(), outputTexture.get_height());
+        int _703 = _699.x;
+        bool _704 = _693.x >= _703;
+        bool _713;
+        if (!_704)
         {
-            _119 = (boxMin.x - origin.x) / dir.x;
+            _713 = _693.y >= _699.y;
         }
         else
         {
-            _119 = 1000000015047466219876688855040.0;
+            _713 = _704;
         }
-        _104 = _119;
-    }
-    float tx = _104;
-    float _139;
-    if (dir.y > 0.0)
-    {
-        _139 = (boxMax.y - origin.y) / dir.y;
-    }
-    else
-    {
-        float _154;
-        if (dir.y < 0.0)
-        {
-            _154 = (boxMin.y - origin.y) / dir.y;
-        }
-        else
-        {
-            _154 = 1000000015047466219876688855040.0;
-        }
-        _139 = _154;
-    }
-    float ty = _139;
-    float _173;
-    if (dir.z > 0.0)
-    {
-        _173 = (boxMax.z - origin.z) / dir.z;
-    }
-    else
-    {
-        float _188;
-        if (dir.z < 0.0)
-        {
-            _188 = (boxMin.z - origin.z) / dir.z;
-        }
-        else
-        {
-            _188 = 1000000015047466219876688855040.0;
-        }
-        _173 = _188;
-    }
-    float tz = _173;
-    return fast::min(tx, fast::min(ty, tz));
-}
-
-static inline __attribute__((always_inline))
-float4 TraceRay(thread const float3& rayOrigin, thread const float3& rayDir, thread const float& worldSizeIndex, thread const int& maxLevels, thread const float& voxelScale, thread const float& lodPixelThreshold, thread const float& lodCoverageThreshold, const device NodeBuffer& v_412)
-{
-    float gamma = 2.2000000476837158203125;
-    float worldSizeWorld = worldSizeIndex * voxelScale;
-    float maxRenderDistance = 40.0;
-    float epsilon = fast::max(voxelScale * 0.00999999977648258209228515625, 0.0005000000237487256526947021484375);
-    float3 rayPos = rayOrigin;
-    float4 colorFinal = float4(0.0500000007450580596923828125, 0.0500000007450580596923828125, 0.07999999821186065673828125, 1.0);
-    bool hit = false;
-    for (int paso = 0; paso < 128; paso++)
-    {
-        bool _364 = any(rayPos < float3(0.0));
-        bool _373;
-        if (!_364)
-        {
-            _373 = any(rayPos > float3(worldSizeWorld));
-        }
-        else
-        {
-            _373 = _364;
-        }
-        if (_373)
+        if (_713)
         {
             break;
         }
-        float distanciaRecorrida = length(rayPos - rayOrigin);
-        if (distanciaRecorrida > maxRenderDistance)
+        int _752 = int(_721.u_Frame.MaxLevels);
+        float4 _1845;
+        _1845 = float4(0.0);
+        float4 _2019;
+        for (int _1844 = 0; _1844 < 2; _1845 = _2019, _1844++)
         {
-            break;
-        }
-        float3 indexPos = rayPos / float3(voxelScale);
-        uint nodoActual = 0u;
-        float3 posCajaMin = float3(0.0);
-        float tamanoActual = worldSizeIndex;
-        bool avanzo = false;
-        for (int nivel = 0; nivel < maxLevels; nivel++)
-        {
-            uint desc = v_412.nodes[nodoActual].descriptor;
-            uint validMask = desc & 255u;
-            uint leafMask = (desc >> uint(8)) & 255u;
-            uint coverage = (desc >> uint(16)) & 255u;
-            uint childPtr = v_412.nodes[nodoActual].childIndex;
-            float nodeWorldSize = tamanoActual * voxelScale;
-            bool _441 = (nivel > 0) && (lodPixelThreshold > 0.0);
-            bool _449;
-            if (_441)
+            _2019 = _1845;
+            float4 _852;
+            for (int _1846 = 0; _1846 < 2; _2019 = _852, _1846++)
             {
-                _449 = nodeWorldSize < (distanciaRecorrida * lodPixelThreshold);
-            }
-            else
-            {
-                _449 = _441;
-            }
-            if (_449)
-            {
-                float3 boxMax = posCajaMin + float3(tamanoActual);
-                if (float(coverage) > (lodCoverageThreshold * 255.0))
+                float2 _807 = (((float2(_693) + (((float2(float(_1846), float(_1844)) + float2(0.5)) * float2(0.5)) - float2(0.5))) / float2(_699)) * 2.0) - float2(1.0);
+                float3 _835 = fast::normalize((_721.u_Frame.CameraDir.xyz + ((_721.u_Frame.CameraRight.xyz * (_807.x * (float(_703) / float(_699.y)))) * _721.u_Frame.Fov)) + ((_721.u_Frame.CameraUp.xyz * _807.y) * _721.u_Frame.Fov));
+                float _948 = _721.u_Frame.WorldSize * _721.u_Frame.VoxelScale;
+                float _951 = fast::max(_721.u_Frame.VoxelScale * 0.00999999977648258209228515625, 0.0005000000237487256526947021484375);
+                float3 _1849;
+                float4 _1996;
+                _1849 = _721.u_Frame.CameraPos.xyz;
+                _1996 = float4(0.0500000007450580596923828125, 0.0500000007450580596923828125, 0.07999999821186065673828125, 1.0);
+                bool _1914;
+                float4 _1995;
+                float4 _1998;
+                float3 _2117;
+                int _1848 = 0;
+                bool _1917 = false;
+                for (;;)
                 {
-                    float3 param = indexPos;
-                    float3 param_1 = posCajaMin;
-                    float3 param_2 = boxMax;
-                    float3 normal = BoxNormal(param, param_1, param_2);
-                    uint param_3 = v_412.nodes[nodoActual].material;
-                    float4 param_4 = DecodificarColor(param_3);
-                    float3 param_5 = normal;
-                    float3 param_6 = rayDir;
-                    float param_7 = distanciaRecorrida;
-                    float param_8 = maxRenderDistance;
-                    float param_9 = gamma;
-                    float4 _489 = ShadeHit(param_4, param_5, param_6, param_7, param_8, param_9);
-                    colorFinal = _489;
-                    hit = true;
+                    if (_1848 < 128)
+                    {
+                        bool _960 = any(_1849 < float3(0.0));
+                        bool _969;
+                        if (!_960)
+                        {
+                            _969 = any(_1849 > float3(_948));
+                        }
+                        else
+                        {
+                            _969 = _960;
+                        }
+                        if (_969)
+                        {
+                            _1995 = _1996;
+                            break;
+                        }
+                        float _975 = length(_1849 - _721.u_Frame.CameraPos.xyz);
+                        if (_975 > 40.0)
+                        {
+                            _1995 = _1996;
+                            break;
+                        }
+                        float3 _984 = _1849 / float3(_721.u_Frame.VoxelScale);
+                        float3 _1856;
+                        _1856 = float3(0.0);
+                        float _1071;
+                        uint _1105;
+                        float3 _1120;
+                        bool _1934;
+                        float3 _1951;
+                        int _1851 = 0;
+                        uint _1852 = 0u;
+                        float _1853 = _721.u_Frame.WorldSize;
+                        for (;;)
+                        {
+                            if (_1851 < _752)
+                            {
+                                bool _1013 = (_1851 > 0) && (_721.u_Frame.LodPixelThreshold > 0.0);
+                                bool _1021;
+                                if (_1013)
+                                {
+                                    _1021 = (_1853 * _721.u_Frame.VoxelScale) < (_975 * _721.u_Frame.LodPixelThreshold);
+                                }
+                                else
+                                {
+                                    _1021 = _1013;
+                                }
+                                if (_1021)
+                                {
+                                    float3 _1026 = _1856 + float3(_1853);
+                                    bool _1031 = float((_412.nodes[_1852].descriptor >> uint(16)) & 255u) > (_721.u_Frame.LodCoverageThreshold * 255.0);
+                                    float3 _1952;
+                                    float4 _2004;
+                                    if (_1031)
+                                    {
+                                        float3 _1210 = _984 - _1856;
+                                        float3 _1213 = _1026 - _984;
+                                        float _1215 = _1210.x;
+                                        float _1217 = _1210.y;
+                                        bool _1219 = _1217 < _1215;
+                                        float _2137 = _1219 ? _1217 : _1215;
+                                        float _1225 = _1210.z;
+                                        bool _1227 = _1225 < _2137;
+                                        float _2140 = _1227 ? _1225 : _2137;
+                                        float _1233 = _1213.x;
+                                        bool _1235 = _1233 < _2140;
+                                        float _2143 = _1235 ? _1233 : _2140;
+                                        float _1241 = _1213.y;
+                                        bool _1243 = _1241 < _2143;
+                                        float4 _1913;
+                                        do
+                                        {
+                                            float _1269 = float(_412.nodes[_1852].material & 255u) * 0.0039215688593685626983642578125;
+                                            float _1274 = float((_412.nodes[_1852].material >> uint(8)) & 255u) * 0.0039215688593685626983642578125;
+                                            float _1279 = float((_412.nodes[_1852].material >> uint(16)) & 255u) * 0.0039215688593685626983642578125;
+                                            float _1284 = float((_412.nodes[_1852].material >> uint(24)) & 255u) * 0.0039215688593685626983642578125;
+                                            if (_1284 == 0.0)
+                                            {
+                                                _1913 = float4(_1269, _1274, _1279, _1284);
+                                                break;
+                                            }
+                                            _1913 = float4(_1269, _1274, _1279, 1.0);
+                                            break;
+                                        } while(false);
+                                        float3 _1320 = _1913.xyz * (0.119999997317790985107421875 + (0.87999999523162841796875 * fast::max(dot(select(select(select(select(select(float3(-1.0, 0.0, 0.0), float3(0.0, -1.0, 0.0), bool3(_1219)), float3(0.0, 0.0, -1.0), bool3(_1227)), float3(1.0, 0.0, 0.0), bool3(_1235)), float3(0.0, 1.0, 0.0), bool3(_1243)), float3(0.0, 0.0, 1.0), bool3(_1213.z < (_1243 ? _1241 : _2143))), -_835), 0.0)));
+                                        float4 _1743 = _1913;
+                                        _1743.x = _1320.x;
+                                        _1743.y = _1320.y;
+                                        _1743.z = _1320.z;
+                                        float3 _1335 = _1743.xyz * fast::clamp(1.0 - (_975 * 0.02500000037252902984619140625), 0.0, 1.0);
+                                        float4 _1749 = _1743;
+                                        _1749.x = _1335.x;
+                                        _1749.y = _1335.y;
+                                        _1749.z = _1335.z;
+                                        float3 _1347 = pow(_1749.xyz, float3(0.454545438289642333984375));
+                                        float4 _1755 = _1749;
+                                        _1755.x = _1347.x;
+                                        _1755.y = _1347.y;
+                                        _1755.z = _1347.z;
+                                        _2004 = _1755;
+                                        _1952 = _1849;
+                                    }
+                                    else
+                                    {
+                                        float3 _1050 = _1856 * _721.u_Frame.VoxelScale;
+                                        float3 _1053 = _1026 * _721.u_Frame.VoxelScale;
+                                        float _1367 = _835.x;
+                                        float _1887;
+                                        if (_1367 > 0.0)
+                                        {
+                                            _1887 = (_1053.x - _1849.x) / _1367;
+                                        }
+                                        else
+                                        {
+                                            float _1886;
+                                            if (_1367 < 0.0)
+                                            {
+                                                _1886 = (_1050.x - _1849.x) / _1367;
+                                            }
+                                            else
+                                            {
+                                                _1886 = 1000000015047466219876688855040.0;
+                                            }
+                                            _1887 = _1886;
+                                        }
+                                        float _1397 = _835.y;
+                                        float _1889;
+                                        if (_1397 > 0.0)
+                                        {
+                                            _1889 = (_1053.y - _1849.y) / _1397;
+                                        }
+                                        else
+                                        {
+                                            float _1888;
+                                            if (_1397 < 0.0)
+                                            {
+                                                _1888 = (_1050.y - _1849.y) / _1397;
+                                            }
+                                            else
+                                            {
+                                                _1888 = 1000000015047466219876688855040.0;
+                                            }
+                                            _1889 = _1888;
+                                        }
+                                        float _1427 = _835.z;
+                                        float _1891;
+                                        if (_1427 > 0.0)
+                                        {
+                                            _1891 = (_1053.z - _1849.z) / _1427;
+                                        }
+                                        else
+                                        {
+                                            float _1890;
+                                            if (_1427 < 0.0)
+                                            {
+                                                _1890 = (_1050.z - _1849.z) / _1427;
+                                            }
+                                            else
+                                            {
+                                                _1890 = 1000000015047466219876688855040.0;
+                                            }
+                                            _1891 = _1890;
+                                        }
+                                        _2004 = _1996;
+                                        _1952 = _1849 + (_835 * fast::max(fast::min(_1887, fast::min(_1889, _1891)) + _951, _951));
+                                    }
+                                    _1998 = _2004;
+                                    _1951 = _1952;
+                                    _1934 = _1031 ? false : true;
+                                    _1914 = _1031 ? true : _1917;
+                                    break;
+                                }
+                                _1071 = _1853 * 0.5;
+                                float3 _1074 = float3(_1071);
+                                float3 _1075 = _1856 + _1074;
+                                uint _1081 = uint(_984.x >= _1075.x);
+                                uint _1087 = uint(_984.y >= _1075.y);
+                                uint _1093 = uint(_984.z >= _1075.z);
+                                uint _1100 = (_1081 | (_1087 << uint(1))) | (_1093 << uint(2));
+                                uint _1102 = 1u << _1100;
+                                _1105 = _412.nodes[_1852].childIndex + _1100;
+                                _1120 = _1856 + float3((_1081 != 0u) ? _1071 : 0.0, (_1087 != 0u) ? _1071 : 0.0, (_1093 != 0u) ? _1071 : 0.0);
+                                float3 _1124 = _1120 + _1074;
+                                if ((((_412.nodes[_1852].descriptor >> uint(8)) & 255u) & _1102) != 0u)
+                                {
+                                    float4 _1857;
+                                    do
+                                    {
+                                        float _1473 = float(_412.nodes[_1105].material & 255u) * 0.0039215688593685626983642578125;
+                                        float _1478 = float((_412.nodes[_1105].material >> uint(8)) & 255u) * 0.0039215688593685626983642578125;
+                                        float _1483 = float((_412.nodes[_1105].material >> uint(16)) & 255u) * 0.0039215688593685626983642578125;
+                                        float _1488 = float((_412.nodes[_1105].material >> uint(24)) & 255u) * 0.0039215688593685626983642578125;
+                                        if (_1488 == 0.0)
+                                        {
+                                            _1857 = float4(_1473, _1478, _1483, _1488);
+                                            break;
+                                        }
+                                        _1857 = float4(_1473, _1478, _1483, 1.0);
+                                        break;
+                                    } while(false);
+                                    if (_1857.w > 0.0)
+                                    {
+                                        float3 _1512 = _984 - _1120;
+                                        float3 _1515 = _1124 - _984;
+                                        float _1517 = _1512.x;
+                                        float _1519 = _1512.y;
+                                        bool _1521 = _1519 < _1517;
+                                        float _2153 = _1521 ? _1519 : _1517;
+                                        float _1527 = _1512.z;
+                                        bool _1529 = _1527 < _2153;
+                                        float _2156 = _1529 ? _1527 : _2153;
+                                        float _1535 = _1515.x;
+                                        bool _1537 = _1535 < _2156;
+                                        float _2159 = _1537 ? _1535 : _2156;
+                                        float _1543 = _1515.y;
+                                        bool _1545 = _1543 < _2159;
+                                        float3 _1579 = _1857.xyz * (0.119999997317790985107421875 + (0.87999999523162841796875 * fast::max(dot(select(select(select(select(select(float3(-1.0, 0.0, 0.0), float3(0.0, -1.0, 0.0), bool3(_1521)), float3(0.0, 0.0, -1.0), bool3(_1529)), float3(1.0, 0.0, 0.0), bool3(_1537)), float3(0.0, 1.0, 0.0), bool3(_1545)), float3(0.0, 0.0, 1.0), bool3(_1515.z < (_1545 ? _1543 : _2159))), -_835), 0.0)));
+                                        float4 _1803 = _1857;
+                                        _1803.x = _1579.x;
+                                        _1803.y = _1579.y;
+                                        _1803.z = _1579.z;
+                                        float3 _1594 = _1803.xyz * fast::clamp(1.0 - (_975 * 0.02500000037252902984619140625), 0.0, 1.0);
+                                        float4 _1809 = _1803;
+                                        _1809.x = _1594.x;
+                                        _1809.y = _1594.y;
+                                        _1809.z = _1594.z;
+                                        float3 _1606 = pow(_1809.xyz, float3(0.454545438289642333984375));
+                                        float4 _1815 = _1809;
+                                        _1815.x = _1606.x;
+                                        _1815.y = _1606.y;
+                                        _1815.z = _1606.z;
+                                        _1998 = _1815;
+                                        _1951 = _1849;
+                                        _1934 = false;
+                                        _1914 = true;
+                                        break;
+                                    }
+                                }
+                                if (!(((_412.nodes[_1852].descriptor & 255u) & _1102) != 0u))
+                                {
+                                    float3 _1162 = _1120 * _721.u_Frame.VoxelScale;
+                                    float3 _1165 = _1124 * _721.u_Frame.VoxelScale;
+                                    float _1626 = _835.x;
+                                    float _1863;
+                                    if (_1626 > 0.0)
+                                    {
+                                        _1863 = (_1165.x - _1849.x) / _1626;
+                                    }
+                                    else
+                                    {
+                                        float _1862;
+                                        if (_1626 < 0.0)
+                                        {
+                                            _1862 = (_1162.x - _1849.x) / _1626;
+                                        }
+                                        else
+                                        {
+                                            _1862 = 1000000015047466219876688855040.0;
+                                        }
+                                        _1863 = _1862;
+                                    }
+                                    float _1656 = _835.y;
+                                    float _1865;
+                                    if (_1656 > 0.0)
+                                    {
+                                        _1865 = (_1165.y - _1849.y) / _1656;
+                                    }
+                                    else
+                                    {
+                                        float _1864;
+                                        if (_1656 < 0.0)
+                                        {
+                                            _1864 = (_1162.y - _1849.y) / _1656;
+                                        }
+                                        else
+                                        {
+                                            _1864 = 1000000015047466219876688855040.0;
+                                        }
+                                        _1865 = _1864;
+                                    }
+                                    float _1686 = _835.z;
+                                    float _1867;
+                                    if (_1686 > 0.0)
+                                    {
+                                        _1867 = (_1165.z - _1849.z) / _1686;
+                                    }
+                                    else
+                                    {
+                                        float _1866;
+                                        if (_1686 < 0.0)
+                                        {
+                                            _1866 = (_1162.z - _1849.z) / _1686;
+                                        }
+                                        else
+                                        {
+                                            _1866 = 1000000015047466219876688855040.0;
+                                        }
+                                        _1867 = _1866;
+                                    }
+                                    _1998 = _1996;
+                                    _1951 = _1849 + (_835 * fast::max(fast::min(_1863, fast::min(_1865, _1867)) + _951, _951));
+                                    _1934 = true;
+                                    _1914 = _1917;
+                                    break;
+                                }
+                                _1856 = _1120;
+                                _1853 = _1071;
+                                _1852 = _1105;
+                                _1851++;
+                                continue;
+                            }
+                            else
+                            {
+                                _1998 = _1996;
+                                _1951 = _1849;
+                                _1934 = false;
+                                _1914 = _1917;
+                                break;
+                            }
+                        }
+                        if (_1914)
+                        {
+                            _1995 = _1998;
+                            break;
+                        }
+                        if (!_1934)
+                        {
+                            _2117 = _1951 + (_835 * _951);
+                        }
+                        else
+                        {
+                            _2117 = _1951;
+                        }
+                        _1917 = _1914;
+                        _1849 = _2117;
+                        _1848++;
+                        _1996 = _1998;
+                        continue;
+                    }
+                    else
+                    {
+                        _1995 = _1996;
+                        break;
+                    }
                 }
-                else
-                {
-                    float3 emptyMinWorld = posCajaMin * voxelScale;
-                    float3 emptyMaxWorld = boxMax * voxelScale;
-                    float3 param_10 = rayPos;
-                    float3 param_11 = rayDir;
-                    float3 param_12 = emptyMinWorld;
-                    float3 param_13 = emptyMaxWorld;
-                    float tExit = AABBExitT(param_10, param_11, param_12, param_13);
-                    rayPos += (rayDir * fast::max(tExit + epsilon, epsilon));
-                    avanzo = true;
-                }
-                break;
-            }
-            float halfSize = tamanoActual * 0.5;
-            float3 centro = posCajaMin + float3(halfSize);
-            uint bitX = uint(indexPos.x >= centro.x);
-            uint bitY = uint(indexPos.y >= centro.y);
-            uint bitZ = uint(indexPos.z >= centro.z);
-            uint octante = (bitX | (bitY << uint(1))) | (bitZ << uint(2));
-            uint mascaraOctante = 1u << octante;
-            uint indiceHijo = childPtr + octante;
-            float3 childBoxMin = posCajaMin + float3((bitX != 0u) ? halfSize : 0.0, (bitY != 0u) ? halfSize : 0.0, (bitZ != 0u) ? halfSize : 0.0);
-            float3 childBoxMax = childBoxMin + float3(halfSize);
-            if ((leafMask & mascaraOctante) != 0u)
-            {
-                uint param_14 = v_412.nodes[indiceHijo].material;
-                float4 hitColor = DecodificarColor(param_14);
-                if (hitColor.w > 0.0)
-                {
-                    float3 param_15 = indexPos;
-                    float3 param_16 = childBoxMin;
-                    float3 param_17 = childBoxMax;
-                    float3 normal_1 = BoxNormal(param_15, param_16, param_17);
-                    float4 param_18 = hitColor;
-                    float3 param_19 = normal_1;
-                    float3 param_20 = rayDir;
-                    float param_21 = distanciaRecorrida;
-                    float param_22 = maxRenderDistance;
-                    float param_23 = gamma;
-                    float4 _624 = ShadeHit(param_18, param_19, param_20, param_21, param_22, param_23);
-                    colorFinal = _624;
-                    hit = true;
-                    break;
-                }
-            }
-            if ((validMask & mascaraOctante) != 0u)
-            {
-                nodoActual = indiceHijo;
-                tamanoActual = halfSize;
-                posCajaMin = childBoxMin;
-            }
-            else
-            {
-                float3 emptyBoxMinWorld = childBoxMin * voxelScale;
-                float3 emptyBoxMaxWorld = childBoxMax * voxelScale;
-                float3 param_24 = rayPos;
-                float3 param_25 = rayDir;
-                float3 param_26 = emptyBoxMinWorld;
-                float3 param_27 = emptyBoxMaxWorld;
-                float tExit_1 = AABBExitT(param_24, param_25, param_26, param_27);
-                rayPos += (rayDir * fast::max(tExit_1 + epsilon, epsilon));
-                avanzo = true;
-                break;
+                _852 = _2019 + _1995;
             }
         }
-        if (hit)
-        {
-            break;
-        }
-        if (!avanzo)
-        {
-            rayPos += (rayDir * epsilon);
-        }
-    }
-    return colorFinal;
-}
-
-kernel void compute_main(const device NodeBuffer& v_412 [[buffer(0)]], constant FrameBlock& _721 [[buffer(1)]], texture2d<float, access::write> outputTexture [[texture(0)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
-{
-    int2 gridPos = int2(gl_GlobalInvocationID.xy);
-    int2 dims = int2(outputTexture.get_width(), outputTexture.get_height());
-    bool _704 = gridPos.x >= dims.x;
-    bool _713;
-    if (!_704)
-    {
-        _713 = gridPos.y >= dims.y;
-    }
-    else
-    {
-        _713 = _704;
-    }
-    if (_713)
-    {
-        return;
-    }
-    float3 cameraPos = _721.u_Frame.CameraPos.xyz;
-    float3 cameraDir = _721.u_Frame.CameraDir.xyz;
-    float3 cameraUp = _721.u_Frame.CameraUp.xyz;
-    float3 cameraRight = _721.u_Frame.CameraRight.xyz;
-    float fov = _721.u_Frame.Fov;
-    float worldSize = _721.u_Frame.WorldSize;
-    int maxLevels = int(_721.u_Frame.MaxLevels);
-    float voxelScale = _721.u_Frame.VoxelScale;
-    float lodPixelThreshold = _721.u_Frame.LodPixelThreshold;
-    float lodCoverageThreshold = _721.u_Frame.LodCoverageThreshold;
-    float4 colorAccum = float4(0.0);
-    for (int sy = 0; sy < 2; sy++)
-    {
-        for (int sx = 0; sx < 2; sx++)
-        {
-            float2 subOffset = ((float2(float(sx), float(sy)) + float2(0.5)) / float2(2.0)) - float2(0.5);
-            float2 uv = (((float2(gridPos) + subOffset) / float2(dims)) * 2.0) - float2(1.0);
-            uv.x *= (float(dims.x) / float(dims.y));
-            float3 rayDir = fast::normalize((cameraDir + ((cameraRight * uv.x) * fov)) + ((cameraUp * uv.y) * fov));
-            float3 param = cameraPos;
-            float3 param_1 = rayDir;
-            float param_2 = worldSize;
-            int param_3 = maxLevels;
-            float param_4 = voxelScale;
-            float param_5 = lodPixelThreshold;
-            float param_6 = lodCoverageThreshold;
-            colorAccum += TraceRay(param, param_1, param_2, param_3, param_4, param_5, param_6, v_412);
-        }
-    }
-    float4 colorFinal = colorAccum / float4(4.0);
-    outputTexture.write(colorFinal, uint2(gridPos));
+        outputTexture.write(_1845 * float4(0.25), uint2(_693));
+        break;
+    } while(false);
 }
 

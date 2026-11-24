@@ -16,9 +16,9 @@ Sandbox/src/Shaders/bin/:
 Los archivos generados se versionan en git para que el proyecto compile aunque no tengas
 las herramientas instaladas. Si editas un shader necesitas:
 
-  macOS:   brew install glslang spirv-cross
+  macOS:   brew install glslang spirv-cross spirv-tools
   Windows: Vulkan SDK (trae glslangValidator y spirv-cross; define VULKAN_SDK)
-  Linux:   apt install glslang-tools spirv-cross
+  Linux:   apt install glslang-tools spirv-cross spirv-tools
 
 Uso: python3 Scripts/CompileShaders.py [--force] [--check]
   --force  recompila todo aunque nada haya cambiado
@@ -101,13 +101,18 @@ def is_stale(source, outputs):
         return True
 
 
-def compile_shader(source, stage, glslang, spirv_cross, out_paths):
+def compile_shader(source, stage, glslang, spirv_cross, spirv_opt, out_paths):
     gl_spv, gl_glsl, metal = out_paths
     with tempfile.TemporaryDirectory() as tmp:
         vk_spv = os.path.join(tmp, "vk.spv")
         include = "-I" + INCLUDE_DIR
         ok = run([glslang, "-G", "-S", stage, include, "-o", gl_spv, source])
         ok = ok and run([glslang, "-V", "-S", stage, include, "-o", vk_spv, source])
+        # spirv-opt -O antes de spirv-cross: sin él el MSL queda lleno de copias de
+        # parámetros (param_N) y funciones sin inline que el compilador de Metal no siempre
+        # limpia. Sólo para Metal: el SPIR-V de OpenGL se deja tal cual sale de glslang.
+        if ok and spirv_opt:
+            ok = run([spirv_opt, "-O", vk_spv, "-o", vk_spv])
         ok = ok and run([spirv_cross, gl_spv, "--version", "460", "--output", gl_glsl])
         ok = ok and run([spirv_cross, vk_spv, "--msl", "--msl-version", "20100",
                          "--msl-decoration-binding",
@@ -130,6 +135,9 @@ def main():
 
     glslang = find_tool("glslangValidator")
     spirv_cross = find_tool("spirv-cross")
+    spirv_opt = find_tool("spirv-opt")  # Opcional (brew install spirv-tools / Vulkan SDK)
+    if not spirv_opt:
+        print("[shaders] AVISO: sin spirv-opt el MSL generado no se optimiza (brew install spirv-tools)")
     os.makedirs(OUT_DIR, exist_ok=True)
 
     failed = False
@@ -153,9 +161,9 @@ def main():
         if args.check:
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_outputs = [os.path.join(tmp, os.path.basename(o)) for o in outputs]
-                ok = compile_shader(source, stage, glslang, spirv_cross, tmp_outputs)
+                ok = compile_shader(source, stage, glslang, spirv_cross, spirv_opt, tmp_outputs)
         else:
-            ok = compile_shader(source, stage, glslang, spirv_cross, outputs)
+            ok = compile_shader(source, stage, glslang, spirv_cross, spirv_opt, outputs)
             if ok:
                 with open(stamp_path(source), "w") as f:
                     f.write(input_hash(source) + "\n")
